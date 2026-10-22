@@ -1,12 +1,13 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
-export const connectDB = async () => {
+const connectDB = async () => {
   try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/nyayastack';
-    const conn = await mongoose.connect(mongoUri);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('Database connected successfully');
   } catch (error) {
     console.error(`Database connection error: ${error.message}`);
     process.exit(1);
   }
 };
+
+module.exports = connectDB;
