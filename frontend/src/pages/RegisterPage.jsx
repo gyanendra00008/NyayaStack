@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import bg from "../assets/2ndbg.png";
 import logo from "../assets/logo.png";
 
-function RegisterPage() {
+function Register() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -172,9 +172,16 @@ function RegisterPage() {
             Login
           </Link>
         </p>
+
+        <p className="mt-3 text-center text-sm text-gray-600">
+          Are you an authority?{" "}
+          <Link to="/authority/register" className="font-semibold text-[#7a1620]">
+            Request authority access
+          </Link>
+        </p>
       </div>
     </div>
   );
 }
 
-export default RegisterPage;
+export default Register;

@@ -1,29 +1,106 @@
-export default function HomePage() {
+import { Link } from 'react-router-dom'
+import bg from '../assets/bg.jpeg'
+import logo from '../assets/logo.png'
+
+function Home() {
   return (
-    <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-      <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 mb-4">
-        NyayaStack Fullstack Setup
-      </span>
-      <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl text-gray-900 mb-4">
-        Legal Tech Platform Architecture
-      </h1>
-      <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
-        Frontend configured with React 19, Vite, Tailwind CSS, Redux Toolkit, and React Router.
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-xs">
-          <h3 className="font-semibold text-gray-900 mb-1">State Management</h3>
-          <p className="text-sm text-gray-500">Redux Toolkit configured with prebuilt auth slices and custom hooks.</p>
+    <div className="min-h-screen flex flex-col bg-[#fbf3e2] text-[#3b2a20]">
+      {/* Navbar */}
+      <nav className="grid grid-cols-[1fr_auto_1fr] items-center w-full px-6 md:px-12 py-3 bg-[#fdf8ec]/90 backdrop-blur border-b border-[#e6d7b8] sticky top-0 z-10">
+        {/* Left: brand */}
+        <div className="flex items-center gap-2 justify-self-start">
+          <img
+            src={logo}
+            alt="NyayaStack"
+            className="h-9 w-9 object-contain mix-blend-multiply"
+          />
+          <span className="text-xl font-bold text-[#7a1620] font-serif">
+            NyayaStack
+          </span>
         </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-xs">
-          <h3 className="font-semibold text-gray-900 mb-1">API Client</h3>
-          <p className="text-sm text-gray-500">Axios instance configured with base URL, token interceptors, and error handling.</p>
+
+        {/* Center: links */}
+        <div className="hidden md:flex items-center gap-8 text-sm font-medium justify-self-center">
+          <a href="#home" className="text-[#7a1620]">Home</a>
+          <a href="#about" className="hover:text-[#7a1620] transition">About</a>
+          <a href="#features" className="hover:text-[#7a1620] transition">Features</a>
+          <a href="#statistics" className="hover:text-[#7a1620] transition">Statistics</a>
         </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-xs">
-          <h3 className="font-semibold text-gray-900 mb-1">Routing</h3>
-          <p className="text-sm text-gray-500">React Router v7 setup with layouts, page routes, and 404 fallbacks.</p>
+
+        {/* Right: buttons */}
+        <div className="flex items-center gap-3 justify-self-end col-start-3">
+          <Link
+            to="/authority/login"
+            className="hidden md:inline text-sm font-medium text-[#7a1620] hover:underline mr-1"
+          >
+            Authority Login
+          </Link>
+          <Link
+            to="/login"
+            className="px-4 py-1.5 rounded-md border border-[#7a1620] text-[#7a1620] text-sm font-medium hover:bg-[#7a1620] hover:text-white transition"
+          >
+            Login
+          </Link>
+          <Link
+            to="/register"
+            className="px-4 py-1.5 rounded-md bg-[#7a1620] text-white text-sm font-medium hover:bg-[#5e1018] transition"
+          >
+            Sign Up
+          </Link>
         </div>
-      </div>
+      </nav>
+
+      {/* Hero */}
+      <section
+        id="home"
+        className="flex-1 flex items-center justify-center text-center px-4 py-12 bg-cover bg-center"
+        style={{ backgroundImage: `url(${bg})` }}
+      >
+        <div className="max-w-3xl flex flex-col items-center">
+          <img
+            src={logo}
+            alt="NyayaStack logo"
+            className="h-40 md:h-52 object-contain mix-blend-multiply"
+          />
+
+          <h1 className="mt-2 text-4xl md:text-5xl font-bold text-[#7a1620] font-serif">
+            NyayaStack
+          </h1>
+          <p className="mt-1 tracking-[0.3em] text-xs md:text-sm text-[#7a1620] font-semibold">
+            SPEAK ✦ REPORT ✦ REDRESS
+          </p>
+
+          <h2 className="mt-8 text-2xl md:text-3xl font-bold font-serif">
+            A Safe, Transparent and Accountable Grievance Redressal Portal
+          </h2>
+          <p className="mt-4 text-lg">File complaints, track status, stay informed.</p>
+          <p className="font-semibold">Your voice matters.</p>
+
+          <div className="mt-8 flex flex-wrap justify-center gap-4">
+            <Link
+              to="/register"
+              className="px-6 py-3 rounded-md bg-[#7a1620] text-white font-semibold hover:bg-[#5e1018] transition"
+            >
+              File a Complaint
+            </Link>
+            <Link
+              to="/dashboard"
+              className="px-6 py-3 rounded-md border border-[#7a1620] bg-white/70 text-[#7a1620] font-semibold hover:bg-white transition"
+            >
+              View Public Dashboard
+            </Link>
+          </div>
+
+          <p className="mt-6 text-sm">
+            Are you an authority?{' '}
+            <Link to="/authority/login" className="font-semibold text-[#7a1620] hover:underline">
+              Authority Login
+            </Link>
+          </p>
+        </div>
+      </section>
     </div>
-  );
+  )
 }
+
+export default Home
