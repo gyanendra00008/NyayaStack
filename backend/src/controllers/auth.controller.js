@@ -1,5 +1,6 @@
 const UserModel = require("../models/auth.models.js");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
 
 const registerUser = async (req, res) => {
   try {
@@ -11,16 +12,17 @@ const registerUser = async (req, res) => {
     // if (existingUser) {
     //   return res.status(409).json({ message: "User already exists" });
     // }
+    const hashedpassword = await bcrypt.hash(password, 10);
 
     const newUser = await UserModel.create({
-      username,
-      email,
-      password,
+      username: username,
+      email: email,
+      password: hashedpassword,
       role: role || 'user',
     });
 
     const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET);
-    
+
     res.cookie("token", token)
     res.status(201).json({
       message: "User registered successfully",
@@ -37,6 +39,36 @@ const registerUser = async (req, res) => {
   }
 };
 
+
+
+const login = async (req , res) => {
+
+    const { username, email, password } = req.body;
+    const hash = await bcrypt.hash(password, 10);
+    
+    const User = req.user;
+
+    const isPasswordValid = await bcrypt.compare(password, User.password);
+
+    if(!isPasswordValid) {
+        return res.status(401).json({ message: "Invalid password" });
+    }
+        
+    const token = jwt.sign({ id: User._id }, process.env.JWT_SECRET);
+    res.cookie("token", token)
+
+    res.status(200).json({
+        message: "Login successful",
+        user: {
+            id: User._id,
+            username: User.username,
+            email: User.email,
+            role: User.role,
+        },
+    });
+
+}
 module.exports = {
   registerUser,
+  login
 };
