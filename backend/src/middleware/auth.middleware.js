@@ -26,7 +26,11 @@ async function isExistingUser(req, res, next) {
         });
 
         if (existingUser) {
-            return res.status(409).json({ message: "User already exists" });
+            if (existingUser.isVerified) {
+                return res.status(409).json({ message: "User already exists with this username or email" });
+            }
+            req.existingUnverifiedUser = existingUser;
+            return next();
         }
 
         next();
