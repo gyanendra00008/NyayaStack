@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   registerUser,
+  registerAuthority,
   login,
   verifyOtp,
   resendOtp,
@@ -33,6 +34,7 @@ const router = express.Router();
 
 // Registration & Verification
 router.post("/register", registerLimiter, validateUser, isExistingUser, registerUser);
+router.post("/authority/register", registerLimiter, registerAuthority);
 router.post("/verify-otp", otpLimiter, verifyOtp);
 router.post("/resend-otp", otpLimiter, resendOtp);
 

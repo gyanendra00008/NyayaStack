@@ -188,9 +188,18 @@ function validateComplaintFields(req, res, next) {
   }
 
   // Validate category against supported categories (case-insensitive normalization)
-  const matchedCategory = COMPLAINT_CATEGORIES.find(
-    (c) => c.toLowerCase() === trimmedCategory.toLowerCase()
-  );
+  // Or support "Auto" / "AI" for automatic ML categorization
+  let matchedCategory = null;
+  let autoCategorize = false;
+
+  if (trimmedCategory.toLowerCase() === "auto" || trimmedCategory.toLowerCase() === "ai") {
+    autoCategorize = true;
+    matchedCategory = "Auto";
+  } else {
+    matchedCategory = COMPLAINT_CATEGORIES.find(
+      (c) => c.toLowerCase() === trimmedCategory.toLowerCase()
+    );
+  }
 
   if (!matchedCategory) {
     return res.status(400).json({
@@ -199,7 +208,12 @@ function validateComplaintFields(req, res, next) {
     });
   }
 
+  // Parse and normalize isAnonymous flag (supports boolean, string 'true'/'false' from FormData)
+  const rawAnon = req.body.isAnonymous ?? req.body.isAnon;
+  req.body.isAnonymous = rawAnon === true || rawAnon === "true" || rawAnon === 1 || rawAnon === "1";
+
   req.body.category = matchedCategory;
+  req.body.autoCategorize = autoCategorize;
   req.body.title = trimmedTitle;
   req.body.description = trimmedDescription;
 

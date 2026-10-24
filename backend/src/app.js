@@ -30,7 +30,9 @@ app.use(generalLimiter);
 // Application routes
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes); // alias for backwards compatibility
 app.use('/api/complaints', complaintRoutes);
+app.use('/api/petitions', complaintRoutes);
 
 // Error handlers
 app.use(notFoundHandler);

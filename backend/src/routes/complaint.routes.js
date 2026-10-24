@@ -10,9 +10,18 @@ const {
 const {
   createComplaint,
   getMyComplaints,
+  predictComplaintCategory,
+  getCategories,
+  getComplaintById,
 } = require("../controllers/complaint.controller.js");
 
 const router = express.Router();
+
+// GET /api/complaints/categories - Retrieve authoritative supported complaint categories
+router.get("/categories", getCategories);
+
+// POST /api/complaints/predict-category - Get ML predicted category for title & description
+router.post("/predict-category", predictComplaintCategory);
 
 // POST /api/complaints - Submit a complaint with optional file attachments
 router.post(
@@ -31,6 +40,13 @@ router.get(
   authenticateUser,
   validatePaginationQuery,
   getMyComplaints
+);
+
+// GET /api/complaints/:complaintId - Retrieve a single complaint by ID
+router.get(
+  "/:complaintId",
+  authenticateUser,
+  getComplaintById
 );
 
 module.exports = router;

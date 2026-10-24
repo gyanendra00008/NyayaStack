@@ -106,6 +106,11 @@ const complaintSchema = new mongoose.Schema(
       enum: COMPLAINT_STATUSES,
       default: "Filed",
     },
+    isAnonymous: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
   },
   {
     timestamps: true,

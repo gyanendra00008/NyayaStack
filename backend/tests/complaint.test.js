@@ -649,4 +649,53 @@ describe("Vishanti Petition (NyayaStack) Complaint Module Test Suite", () => {
       assert.ok(complaint.status);
     }
   });
+
+  // 21. Anonymous complaint submission (isAnonymous: true)
+  it("21. POST /api/complaints supports filing anonymously (isAnonymous: true)", async () => {
+    const res = await fetch(`${baseUrl}/complaints`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${userTokenA}`,
+      },
+      body: JSON.stringify({
+        category: "Hostel",
+        title: "Confidential hostel grievance",
+        description: "Anonymous safety report with sensitive details.",
+        isAnonymous: true,
+      }),
+    });
+
+    const body = await res.json();
+    assert.equal(res.status, 201);
+    assert.equal(body.success, true);
+    assert.equal(body.data.isAnonymous, true);
+    assert.equal(body.data.userId, undefined);
+
+    // Verify it is persisted with isAnonymous: true
+    const saved = await Complaint.findOne({ complaintId: body.data.complaintId }).lean();
+    assert.ok(saved);
+    assert.equal(saved.isAnonymous, true);
+  });
+
+  // 22. Auto category resolution when category is set to 'Auto'
+  it("22. POST /api/complaints accepts 'Auto' category and resolves to a valid category", async () => {
+    const res = await fetch(`${baseUrl}/complaints`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${userTokenA}`,
+      },
+      body: JSON.stringify({
+        category: "Auto",
+        title: "Broken fan in hostel bedroom",
+        description: "The ceiling fan in hostel room 302 makes screeching noise and stops spinning.",
+      }),
+    });
+
+    const body = await res.json();
+    assert.equal(res.status, 201);
+    assert.equal(body.success, true);
+    assert.ok(Complaint.COMPLAINT_CATEGORIES.includes(body.data.category));
+  });
 });

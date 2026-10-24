@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <!-- Background Gradient matching NyayaStack royal maroon palette -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3A0D15" />
+      <stop offset="50%" stop-color="#54121C" />
+      <stop offset="100%" stop-color="#6B1724" />
+    </linearGradient>
+
+    <!-- Subtle inner shadow / ring -->
+    <linearGradient id="goldAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F2DFB3" />
+      <stop offset="100%" stop-color="#D4AF37" />
+    </linearGradient>
+
+    <linearGradient id="visorShine" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.85" />
+      <stop offset="45%" stop-color="#FFFFFF" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.5" />
+    </linearGradient>
+  </defs>
+
+  <!-- Circular Base -->
+  <circle cx="60" cy="60" r="59" fill="url(#bgGrad)" stroke="#E8C582" stroke-width="2" />
+
+  <!-- Outer Ring Accent -->
+  <circle cx="60" cy="60" r="54" fill="none" stroke="#E8C582" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.6" />
+
+  <!-- Anonymous Coat & Upturned Collars -->
+  <path d="M18 116 C18 96 32 84 46 83 L53 92 L60 94 L67 92 L74 83 C88 84 102 96 102 116 Z" fill="#1A0508" opacity="0.9" />
+  <path d="M46 83 L54 100 L60 94 L66 100 L74 83 L66 88 L60 86 L54 88 Z" fill="#2D0B12" stroke="#E8C582" stroke-width="0.8" />
+
+  <!-- Anonymous Face Contour (Shadowed / Masked) -->
+  <ellipse cx="60" cy="64" rx="19" ry="21" fill="#24070D" />
+
+  <!-- Fedora Crown -->
+  <path d="M36 49 C35 30 46 25 57 26 C62 25 76 27 84 49 C76 43 67 44 60 45 C52 44 43 43 36 49 Z" fill="#140306" stroke="#E8C582" stroke-width="0.8" />
+  <!-- Fedora Ribbon -->
+  <path d="M35 47 C43 42 51 43 60 44 C68 43 77 42 85 47 C85 50 83 51 83 51 C75 46 67 47 60 48 C52 47 44 46 37 51 Z" fill="url(#goldAccent)" opacity="0.9" />
+  <!-- Fedora Brim -->
+  <path d="M18 51 C32 46 88 46 102 51 C96 55 83 56 60 56 C37 56 24 55 18 51 Z" fill="#140306" stroke="#E8C582" stroke-width="0.8" />
+
+  <!-- Anonymous Dark Sunglasses / Visor -->
+  <!-- Left Lens -->
+  <path d="M37 60 C37 56 52 56 53 60 L52 70 C52 74 38 74 37 70 Z" fill="#0A0204" stroke="#E8C582" stroke-width="1.2" />
+  <!-- Right Lens -->
+  <path d="M67 60 C68 56 83 56 83 60 L83 70 C83 74 68 74 67 70 Z" fill="#0A0204" stroke="#E8C582" stroke-width="1.2" />
+  <!-- Glasses Bridge -->
+  <path d="M53 62 C56 60 64 60 67 62" fill="none" stroke="#E8C582" stroke-width="1.5" stroke-linecap="round" />
+
+  <!-- Visor Reflection Sleek Highlights -->
+  <path d="M40 62 L48 62 L42 71 L39 71 Z" fill="url(#visorShine)" opacity="0.7" />
+  <path d="M70 62 L78 62 L72 71 L69 71 Z" fill="url(#visorShine)" opacity="0.7" />
+
+  <!-- Subtle Mystery Question Mark / Classified Badge Indicator -->
+  <circle cx="60" cy="78" r="1.5" fill="#E8C582" opacity="0.8" />
+</svg>

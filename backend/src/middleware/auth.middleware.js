@@ -74,6 +74,21 @@ async function validateUser(req, res, next) {
     req.body.username = trimmedUsername;
     req.body.email = trimmedEmail;
 
+    // Optional fullName and rollNo sanitization
+    const rawFullName = req.body.fullName || req.body.name;
+    if (typeof rawFullName === "string") {
+      req.body.fullName = rawFullName.trim().slice(0, 100);
+    } else {
+      req.body.fullName = "";
+    }
+
+    const rawRollNo = req.body.rollNo || req.body.rollNumber || req.body.roll_no;
+    if (typeof rawRollNo === "string" || typeof rawRollNo === "number") {
+      req.body.rollNo = String(rawRollNo).trim().slice(0, 50);
+    } else {
+      req.body.rollNo = "";
+    }
+
     // PREVENT PRIVILEGE ESCALATION: Never trust role from req.body during registration
     req.body.role = "user";
 
@@ -179,7 +194,11 @@ async function isUser(req, res, next) {
 
     // Query user and explicitly select password (which is excluded by default)
     const user = await UserModel.findOne({
-      $or: [{ username: identifier }, { email: identifier }],
+      $or: [
+        { username: identifier },
+        { email: identifier },
+        { rollNo: rawIdentifier.trim() },
+      ],
     }).select("+password");
 
     // Generic error message to prevent user enumeration

@@ -1,5 +1,6 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import anonymousAvatar from '../assets/anonymous-avatar.svg';
 
 const PetitionDetails = () => {
   const [slaSeconds, setSlaSeconds] = useState(5025);
@@ -138,7 +139,7 @@ const PetitionDetails = () => {
 
         <div className="p-4 border-t border-stone-200/80 flex items-center justify-between bg-[#F0E8DC]">
           <div className="flex items-center gap-2.5">
-            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-[#6B1724]" />
+            <img src={anonymousAvatar} alt="Unknown Identity" className="w-8 h-8 rounded-full object-cover border border-[#6B1724]" />
             <div>
               <p className="text-xs font-bold text-stone-800">User</p>
               <p className="text-[10px] text-stone-500 font-mono">Enter here</p>
