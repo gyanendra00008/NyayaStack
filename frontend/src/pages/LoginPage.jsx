@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import bg from '../assets/2ndbg.png'
 import logo from '../assets/logo.png'
 
@@ -17,6 +17,7 @@ function EyeIcon({ open }) {
 }
 
 function Login() {
+  const navigate = useNavigate()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -24,7 +25,12 @@ function Login() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    console.log({ identifier, password, remember })
+
+    // TODO: backend ready hone par yahan fetch() se real login lagana
+    // Abhi dummy login: role save karke dashboard bhej rahe hain
+    const storage = remember ? localStorage : sessionStorage
+    storage.setItem('role', 'citizen')
+    navigate('/dashboard')
   }
 
   const handleInstituteLogin = () => {
@@ -151,7 +157,7 @@ function Login() {
 
         <p className="mt-3 text-center text-sm text-[#3b2a20]/80">
           Are you an authority?{' '}
-          <Link to="/authority/login" className="text-[#7a1620] font-semibold hover:underline">
+          <Link to="/authority-login" className="text-[#7a1620] font-semibold hover:underline">
             Authority Login
           </Link>
         </p>
@@ -161,4 +167,3 @@ function Login() {
 }
 
 export default Login
-

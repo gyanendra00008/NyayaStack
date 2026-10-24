@@ -45,7 +45,10 @@ function Register() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Registration failed");
-      navigate("/login");
+
+      // Sign up success: role save karo aur seedha dashboard bhejo
+      localStorage.setItem("role", "citizen");
+      navigate("/dashboard");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -175,7 +178,7 @@ function Register() {
 
         <p className="mt-3 text-center text-sm text-gray-600">
           Are you an authority?{" "}
-          <Link to="/authority/register" className="font-semibold text-[#7a1620]">
+          <Link to="/authority-register" className="font-semibold text-[#7a1620]">
             Request authority access
           </Link>
         </p>
@@ -185,4 +188,3 @@ function Register() {
 }
 
 export default Register;
-

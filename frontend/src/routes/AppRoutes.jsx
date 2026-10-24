@@ -1,6 +1,8 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 
+import ProtectedRoute from "./ProtectedRoute";
+
 import HomePage from "../pages/HomePage";
 import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
@@ -20,6 +22,7 @@ import PublicTransparency from "../pages/PublicTransparency";
 export default function AppRoutes() {
   return (
     <Routes>
+      {/* Public */}
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
@@ -28,14 +31,16 @@ export default function AppRoutes() {
       <Route path="/authority-register" element={<AuthorityRegister />} />
       <Route path="/publictrans" element={<PublicTransparency />} />
 
-      <Route path="/dashboard" element={<UserDashboard />} />
-      <Route path="/file-complaint" element={<FileComplaint />} />
-      <Route path="/my-petitions" element={<MyPetitions />} />
-      <Route path="/petition-detail" element={<PetitionDetail />} />
-      <Route path="/notifications" element={<Notifications />} />
-      <Route path="/ledger" element={<AuditLedger />} />
+      {/* Citizen only */}
+      <Route path="/dashboard" element={<ProtectedRoute role="citizen"><UserDashboard /></ProtectedRoute>} />
+      <Route path="/file-complaint" element={<ProtectedRoute role="citizen"><FileComplaint /></ProtectedRoute>} />
+      <Route path="/my-petitions" element={<ProtectedRoute role="citizen"><MyPetitions /></ProtectedRoute>} />
+      <Route path="/petition-detail" element={<ProtectedRoute role="citizen"><PetitionDetail /></ProtectedRoute>} />
+      <Route path="/notifications" element={<ProtectedRoute role="citizen"><Notifications /></ProtectedRoute>} />
 
-      <Route path="/officerdash" element={<OfficerDashboard />} />
+      {/* Authority only */}
+      <Route path="/officerdash" element={<ProtectedRoute role="authority"><OfficerDashboard /></ProtectedRoute>} />
+      <Route path="/ledger" element={<ProtectedRoute role="authority"><AuditLedger /></ProtectedRoute>} />
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

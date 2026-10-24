@@ -39,11 +39,12 @@ function AuthorityLogin() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.message || 'Login failed')
 
-      // Token store karo (backend se { token } aata hai maan ke chal rahe hain)
+      // Token + role store karo (backend se { token } aata hai maan ke chal rahe hain)
       const storage = remember ? localStorage : sessionStorage
       storage.setItem('authorityToken', data.token)
+      storage.setItem('role', 'authority')
 
-      navigate('/authority/dashboard')
+      navigate('/officerdash')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -159,7 +160,7 @@ function AuthorityLogin() {
 
         <p className="mt-6 text-center text-sm text-[#3b2a20]/80">
           New authority?{' '}
-          <Link to="/authority/register" className="text-[#7a1620] font-semibold hover:underline">
+          <Link to="/authority-register" className="text-[#7a1620] font-semibold hover:underline">
             Request access
           </Link>
         </p>
@@ -176,4 +177,3 @@ function AuthorityLogin() {
 }
 
 export default AuthorityLogin
-
