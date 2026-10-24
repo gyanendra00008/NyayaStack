@@ -1,0 +1,157 @@
+title,description,category
+Geyser not working in hostel bathroom,Hot water is not coming in the third floor bathrooms of Block B since the past three days.,Hostel
+Broken window glass in hostel room,The window pane in room 204 was cracked during a storm and cold wind is entering continuously.,Hostel
+Hostel room ceiling fan sparking,The regulator and ceiling fan in room 312 are making loud clicking noises and sparking when turned on.,Hostel
+Hostel washroom flush broken,The toilet flush valves on the second floor of boys hostel 1 are broken and water is leaking continuously.,Hostel
+Hostel water cooler giving warm water,The drinking water cooler installed on the ground floor of girls hostel wing C is not cooling at all.,Hostel
+Hostel me light aur pankha band hai,Room number 105 me subah se electricity supply cutoff hai aur switchboard switch spark kar raha hai.,Hostel
+Hostel washroom cleaning not done,"Hostel block A washrooms have not been swept or cleaned for four days, creating severe hygiene problems.",Hostel
+Hostel door lock damaged,The main latch and deadbolt of hostel room 409 are broken and cannot be locked securely.,Hostel
+Hostel bed frame bent and mattress torn,The cot allotted in room 218 has a broken iron frame and mattress springs are coming out.,Hostel
+Hostel gate locked before curfew time,The security guard is locking hostel gates 30 minutes before the official university curfew time.,Hostel
+Hostel corridor tubelights fused,All fluorescent lights in the south corridor of hostel 4 are fused resulting in complete darkness.,Hostel
+Hostel washroom me pani nahi aa raha,Subah 7 baje se hostel ke bathrooms me supply water band hai aur taps dry hain.,Hostel
+Hostel pest control needed for bedbugs,Room 303 in hostel block 2 is heavily infested with bed bugs and insects affecting sleep.,Hostel
+Professor not taking scheduled lectures,Our operating systems faculty has missed six consecutive lectures without assigning any substitute instructor.,Academic
+Syllabus incomplete before midsem exams,More than half of the compiler design course syllabus remains uncovered with exams starting next week.,Academic
+Attendance shortage calculation error in portal,The student portal shows 65 percent attendance whereas the physical register recorded over 82 percent.,Academic
+Lecture timetable clash between electives,Two core elective classes Deep Learning and Cloud Architecture are scheduled at the exact same hour.,Academic
+Lab computers missing required software,Systems in computer lab 2 do not have Python and GCC compilers installed for conducting practicals.,Academic
+Faculty project guide not providing guidance,Our final year major project guide is not granting appointments or reviewing weekly project milestones.,Academic
+Marksheet grade discrepancy after revaluation,The revaluation grade sheet displays grade D in Linear Algebra despite scoring 78 marks in the exam.,Academic
+Course registration portal crashing,The registration portal crashed during open elective selection and erased all registered course options.,Academic
+Teacher syllabus complete nahi kara rahe,Mid semester examinations are next week but the teacher has not finished even two modules.,Academic
+Lab equipment not working for experiments,Digital storage oscilloscopes and function generators in the analog circuits lab are non-functional.,Academic
+Premature closure of assignment submission link,The online assignment portal closed two hours prior to the announced deadline preventing submissions.,Academic
+Class lecture clashes with practical lab session,The advanced algorithms lecture directly overlaps with the database practical slot on Thursdays.,Academic
+Elective course change request pending,Submitted approved course change form to head of department three weeks ago but portal not updated.,Academic
+Classroom air conditioner blowing hot air,The AC unit in lecture hall LH 101 is blowing hot air and creating loud vibrating sounds during classes.,Infrastructure
+Projector bulb fused in seminar hall,The display projector in seminar room 3 flickers repeatedly and turns off during student presentations.,Infrastructure
+Campus WiFi dead across academic block,The institutional wireless network shows connected but has zero internet throughput in the CS building.,Infrastructure
+Broken desks and protruding nails in benches,Multiple wooden benches in lecture theatre 4 have broken backrests and exposed sharp iron nails.,Infrastructure
+Defunct streetlights along campus pathway,"Street lamps between the central library and academic block are not working, leaving the pathway pitch dark.",Infrastructure
+Water purifier RO unit leaking on floor,The main reverse osmosis water cooler outside lecture hall 2 is leaking water creating a slippery floor.,Infrastructure
+Deep potholes on campus main road,The main road connecting the university entrance gate to the administrative building has massive dangerous potholes.,Infrastructure
+Flickering fluorescent tubes in central library,Lighting fixtures in the third floor reference section are constantly flickering causing severe eye strain.,Infrastructure
+Campus passenger elevator stuck on third floor,The elevator in academic tower 2 has been out of service with jammed doors for over five days.,Infrastructure
+Campus internet connection bar bar disconnect ho raha hai,Library aur departments me campus wifi disconnect hota rehta hai aur speed bilkul slow hai.,Infrastructure
+Auditorium audio public address system failure,The podium microphones in the main auditorium produce loud squealing feedback noise during conferences.,Infrastructure
+Broken water pipe flooding department corridor,An underground water pipeline has ruptured near the mechanical workshop flooding the corridor.,Infrastructure
+Defective solar panels on department roof,Solar panel inverters on top of the engineering block are tripping the main power grid breaker.,Infrastructure
+Student identity card issuance delayed,First year undergraduate students have not received their physical smart ID cards two months after classes began.,Administration
+Bonafide certificate request pending at registrar,"Applied for bonafide letter for passport renewal three weeks ago, but the administrative section has not released it.",Administration
+Name spelling incorrect in university ERP portal,My mother name and surname are misspelled in the official records despite submitting gazette notifications.,Administration
+Migration certificate clearance delayed,Graduated student migration file has been pending signature with the registrar clerk for twenty days.,Administration
+Degree verification request unanswered,My employer background check verification request has been sitting with the academic desk without reply.,Administration
+No dues clearance certificate signature delay,Dean office staff is unavailable during public inquiry hours to process final no-dues clearance forms.,Administration
+Return of original academic certificates delayed,Original class 10 and 12 mark sheets submitted during physical counselling have not been returned.,Administration
+Admin office me bonafide certificate nahi mil raha,Do hafte pehle passport application ke liye bonafide apply kiya tha abhi tak registrar office se nahi mila.,Administration
+Student portal login credentials not provided,Newly admitted lateral entry candidates have not received credentials to access the internal intranet portal.,Administration
+Internship character certificate not processed,Urgent character certificate needed for onboarding at corporate internship has not been signed by the registrar.,Administration
+Academic calendar dates missing from admin notices,Official administrative circulars have not updated end semester exam commencement and vacation dates.,Administration
+Department transfer paperwork lost by administration,Branch change request form approved by academic council has been misplaced by administrative desk.,Administration
+Attestation of grade sheets delayed by admin,Controller of examinations office has delayed stamping official transcripts for international applications.,Administration
+Semester tuition fee debited but receipt not generated,Amount of forty five thousand rupees was deducted from bank account but portal status shows pending payment.,Finance
+NSP scholarship disbursement pending in college accounts,National Scholarship Portal verified grant four months ago but college finance desk has not credited funds.,Finance
+Unjustified late fee fine charged,A penalty of two thousand rupees was added to fee bill even though payment was completed before due date.,Finance
+Caution money security deposit refund delay,Completed degree six months ago but institute caution deposit has not been refunded to savings account.,Finance
+Double deduction during online exam fee payment,"Payment gateway failed on first attempt and succeeded on second, resulting in double deduction of three thousand.",Finance
+Fee installment payment request ignored,"Submitted medical hardship proof requesting permission to pay semester fees in two parts, no response received.",Finance
+Online fee payment gateway timeout error,Institute payment portal displays gateway timeout error while money is continuously debited from accounts.,Finance
+Fees account se kat gayi par receipt nahi mili,Netbanking se fee pay ki thi bank se amount cut ho gaya par fees portal par unpaid status dikha raha hai.,Finance
+State post matric scholarship verification pending,Social welfare scholarship verification file is lying unattended on the accounts superintendent table.,Finance
+Hostel mess security deposit refund not credited,Vacated hostel after final semester clearance but refundable caution money has not been transferred.,Finance
+Duplicate tuition fee receipt required for income tax,Accounts department is refusing to provide a signed duplicate tuition fee receipt needed for tax filing.,Finance
+Excess lab fee billed for theory only semester,Fee breakdown includes laboratory and workshop consumable charges for a semester with zero lab credits.,Finance
+Education loan disbursement clearance delayed,Bank released draft for tuition fees but finance section has not reconciled and acknowledged the payment.,Finance
+Sexual harassment incident near sports complex,A female student was inappropriately touched and verbally harassed by an unidentified person near the sports field.,Harassment
+Stalking and taking non-consensual photographs,A male student is persistently following me across campus and clicking photos without my permission.,Harassment
+Inappropriate messages from departmental staff member,A contractual staff member is sending unsolicited personal messages late at night asking for personal meetings.,Harassment
+Mental harassment and bullying in department,"A group of classmates is systematically targeting me with derogatory slurs, exclusion, and psychological bullying.",Harassment
+Verbal abuse and threats of violence outside campus,"Senior students cornered a junior at the tea stall, used abusive profanity, and threatened physical violence.",Harassment
+Vulgar comments and catcalling near girls hostel,Outsiders standing near the perimeter gate of the women residence are catcalling and passing vulgar comments.,Harassment
+Cyberbullying and defamation on confession page,Sexually suggestive and defamatory posts naming a student were posted on an unofficial college confession handle.,Harassment
+Campus me ladkiyon ka peecha karna aur harassment,Evening time me library se hostel aate waqt kuch log comment pass karte hain aur regular peecha karte hain.,Harassment
+Threatening anonymous calls received on mobile,Receiving threatening calls and blackmail messages from an unidentified campus intercom number.,Harassment
+Intimidation and coercion during student council campaigning,A student political group threatened physical consequences if I did not campaign for their nominated candidate.,Harassment
+Unwanted physical proximity and persistent stalking,An individual followed me to the reading room and refused to leave despite repeated clear verbal objections.,Harassment
+Discriminatory casteist remarks passed in department,A student is facing targeted verbal slurs and discriminatory treatment based on social background.,Harassment
+Blackmailing with private pictures on social media,Individual is threatening to circulate edited private photographs unless demanded money is transferred.,Harassment
+Seniors forcing freshers to do humiliating physical tasks,Third year senior students ordered freshers to strip down to undergarments and perform dances at 1 AM.,Ragging
+Physical assault during night ragging in hostel wing,Senior hostelers assaulted first year students with leather belts when they refused to obey their commands.,Ragging
+Forced late night ragging assembly in fresher wing,Group of seniors barged into the fresher corridor at 2 AM and forced everyone to do wall squats for two hours.,Ragging
+Confiscation of identity cards and ragging by seniors,"Senior students stopped first year students near back gate, seized their ID cards, and verbally abused them.",Ragging
+Freshers forced to complete senior academic files,Senior boys are coercing first year students to write their lab practical records and assignments under duress.,Ragging
+Hostel me seniors fresher ki ragging kar rahe hain,Raat ko senior students room me aakar physical ragging aur abuse karte hain aur khana lane ko bolte hain.,Ragging
+Forced humiliating dress code imposed by seniors,Seniors have dictated that first year students must wear unbuttoned shirts and salute whenever a senior walks by.,Ragging
+Freshers forced to purchase alcohol and cigarettes for seniors,Seniors are extorting money from junior hostelers to purchase contraband and liquor from outside.,Ragging
+Hostel room bolted from outside by senior students,Seniors bolted fresher rooms from the outside because juniors refused to attend an unauthorized senior call.,Ragging
+Humiliating fresher crawl across sports ground,First year students were forced to crawl on hands and knees across the dusty field under senior surveillance.,Ragging
+Sleep deprivation and mental torture of juniors,Freshers are being kept awake until 4 AM every night answering personal and degrading questions in senior rooms.,Ragging
+Formal complaint to Anti Ragging cell,"Severe physical and psychological ragging taking place in block 1, urgent anti-ragging committee inspection required.",Ragging
+Seniors threatening freshers with boycott if ragging reported,Seniors openly warned juniors that reporting ragging will lead to expulsion from all clubs and physical beating.,Ragging
+Physical fight between two student groups outside canteen,Violent brawl erupted between two student factions using wooden sticks and iron rods outside the central canteen.,Discipline
+Vandalism of classroom furniture and equipment,"A group of students intentionally shattered window glasses, damaged desks, and tore projector screens in block 3.",Discipline
+Consumption of alcohol and narcotics in hostel premises,Students were found consuming alcoholic beverages and smoking weed in room 209 with loud music disturbing others.,Discipline
+Smoking cigarettes inside academic building restrooms,Students are regularly smoking in second floor toilets causing smoke and triggering building fire alarms.,Discipline
+Possession of cheat sheets and malpractice in exams,Student caught using concealed paper notes and smartphone to cheat during end semester calculus exam.,Discipline
+Campus me ladai jhagda aur property damage,Canteen ke samne do groups me violent maar peet hui aur chairs aur tables tod diye gaye hain.,Discipline
+Disruptive heckling during guest speaker lecture,"A section of students engaged in intentional hooting, throwing objects, and disrespecting the visiting dignitary.",Discipline
+Tampering with emergency fire extinguisher cylinders,"Miscreants discharged dry powder fire extinguishers into the corridor for amusement, causing chaos.",Discipline
+Reckless motorbike stunts on pedestrian campus roads,Students riding motorcycles at excessive speeds and performing stunts inside academic walking zones.,Discipline
+Destruction of hostel common room television,Hostel lounge LCD television and furniture were smashed during an unauthorized late night party.,Discipline
+Unauthorized trespassing across campus boundary wall,Unknown individuals scaled the perimeter wall at midnight and attempted to break into the storeroom.,Discipline
+Gambling and card playing for cash in study hall,Group of individuals caught playing high stakes poker and consuming alcohol inside reading rooms.,Discipline
+Intentionally pulling emergency building alarm,Someone triggered the central fire evacuation alarm maliciously without any smoke or emergency.,Discipline
+Cockroach discovered in mess vegetable curry,A dead cockroach was found inside the bowl of vegetable curry served during dinner at the hostel mess.,Mess
+Undercooked raw chapatis and cold food in mess,"The chapatis served at lunch are completely raw dough inside, cold, and causing stomach cramps.",Mess
+Extremely unhygienic kitchen and dirty mess utensils,"Mess kitchen staff do not wear hairnets or aprons, and steel plates have oily leftover food residue.",Mess
+Food poisoning outbreak after hostel mess dinner,Over twenty students developed vomiting and acute gastroenteritis after eating Sunday special paneer dinner.,Mess
+Expired milk and sour curd served at breakfast,The milk provided during morning breakfast was curdled and the curd smelled rotten and expired.,Mess
+Mess ka khana bilkul kharab aur kacha hai,"Mess me aaj ka khana bohot bekar tha, sabji me excessive oil aur roti kachi thi jisse pet kharab ho gaya.",Mess
+Untreated tap water used for preparing mess meals,Cooks were seen filling large cooking cauldrons directly with murky tap water from the washing sink.,Mess
+Severe food shortage before mess closing time,Dining hall ran out of dal and rice 40 minutes before scheduled closing time leaving students hungry.,Mess
+Foul drainage smell inside mess dining area,Drainage pipe behind mess dishwashing area is choked and overflowing with foul smell inside the hall.,Mess
+Greasy dining tables and unwashed water glasses,Tables in mess are not wiped clean between batches and drinking glasses have visible greasy fingerprints.,Mess
+Stale reheated food served across consecutive days,Leftover rice from previous day lunch was mixed into dinner biryani causing sour taste and sickness.,Mess
+Lack of drinking water in mess dining hall,"Water dispensers in the mess were completely empty throughout dinner, students forced to buy bottled water.",Mess
+Insects and weevils in mess rice grains,Cooked rice served at afternoon lunch contained visible black insects and weevils.,Mess
+College bus arriving 45 minutes late every morning,Route number 5 bus consistently arrives late at the terminal causing students to miss early lectures.,Transport
+Severe overloading and students hanging from bus doors,The morning bus on route 12 is dangerously crowded with students forced to stand on the entry footboard.,Transport
+Bus pass issuance and renewal desk closed,The transport authority office has remained locked for four consecutive days preventing bus pass renewals.,Transport
+Reckless and rash overspeeding by college bus driver,The driver of bus number 8 was aggressively overspeeding and jumping red traffic lights on the highway.,Transport
+Abrupt cancellation of shuttle bus service,The internal campus shuttle linking residential quarters to main gate was halted without announcement.,Transport
+College bus mechanical breakdown on highway,College bus broke down halfway during the morning commute due to lack of basic maintenance.,Transport
+College bus timing roz late ho raha hai,Bus roz subah 40 minute late aati hai jiski wajah se first hour attendance miss ho rahi hai.,Transport
+Delay in issuing bus concession pass,Semester bus fare concession pass application submitted six weeks ago has not been cleared.,Transport
+Lack of transport from metro station in evening,No college feeder shuttles are available from the nearest metro station after 6 PM leaving students stranded.,Transport
+Broken bus seats and rainwater leaking through roof,The roof of bus route 3 leaks during rain and multiple passenger seats have torn cushions and loose bolts.,Transport
+Rude behavior and foul language by bus conductor,The conductor on route 7 routinely insults students and refuses to honor verified digital bus passes.,Transport
+Bus departure timing clashes with university exams,The return bus departs at 4:30 PM whereas university practical examinations finish at 5:15 PM.,Transport
+College bus tyre bald and unmaintained,Bus number 2 has completely worn bald tyres posing a severe hazard in wet rainy road conditions.,Transport
+Campus dispensary closed during medical emergency,A student suffered an acute asthma attack in the afternoon but the health dispensary was locked shut.,Medical
+Doctor absent from campus health center,"No medical doctor has attended the campus dispensary for the past three days, only a compounder giving pills.",Medical
+Lack of basic first aid and bandages on sports field,"A student sustained a deep laceration during football match, no antiseptic, gauze, or ice packs were available.",Medical
+Expired medicines dispensed to sick student,Antibiotic capsules and cough syrup given at the campus clinic were found to be past expiration date by four months.,Medical
+Campus ambulance unavailable during emergency,Ambulance driver could not be located when a student needed urgent transportation to the hospital after a fall.,Medical
+Health center me doctor aur medicines nahi hain,Dispensary me doctor available nahi milta aur basic medicines aur painkiller bhi out of stock hain.,Medical
+Defective nebulizer and lack of oxygen cylinder,The emergency medical room does not possess a working oxygen cylinder or nebulizer for respiratory distress.,Medical
+Refusal to issue genuine medical rest certificate,Medical superintendent refused to sign leave approval despite presentation of hospital discharge certificate.,Medical
+Absence of female doctor or nurse in dispensary,Female students requiring urgent medical checkups face distress due to total lack of female health personnel.,Medical
+Emergency medical helpline number continuously unreachable,The emergency phone line advertised on the university health portal rings continuously with no answer.,Medical
+Unsanitary beds and stained linen in recovery ward,Bedsheets on patient cots in the observation room are stained with blood and have not been changed.,Medical
+Blood pressure monitor and pulse oximeter not working,Nursing staff could not record vital signs because the digital blood pressure apparatus was broken.,Medical
+Shortage of anti rabies and tetanus injections,Dispensary lacks basic tetanus toxoid injections after a student was bitten by a stray dog on campus.,Medical
+Lost leather wallet in university library,"A dark brown wallet containing student ID card, driver license, and cash was misplaced in the reading room.",Other
+Found bunch of keys near football pavilion,Found a set of four keys attached to a metallic motorcycle keychain near the football ground bleachers.,Other
+Annual cultural fest online registration error,The technical portal for submitting dance and music competition entries is throwing an HTTP 500 server error.,Other
+Extension of campus gymnasium working hours,Requesting authority to extend gymnasium closing time to 9 PM so evening batch students can use the facility.,Other
+Lost laptop charger in seminar auditorium,A 65 watt type C fast charger was left behind on the second row of the main conference hall on Friday.,Other
+Campus bookstore charging prices above MRP,The stationary shop located in the student activity center is charging inflated rates above published MRP.,Other
+Lost student identity card near cafeteria,"Misplaced my university ID card between the central cafeteria and block 2, finder please return.",Other
+Overgrown weeds and grass on sports ground,The athletics track and football field have overgrown tall weeds and snake sightings have been reported.,Other
+Query regarding campus swimming pool access,Seeking official clarification regarding swimming pool membership fee structure and morning slot timings.,Other
+Lost spectacles left in computer laboratory,Black frame prescription spectacles were left on desk number 12 in the CAD lab yesterday afternoon.,Other
+Annual magazine article submission deadline query,Inquiring whether the deadline for student editorial submissions to the annual magazine has been extended.,Other
+Found abandoned bicycle near hostel gate,An unlocked bicycle with a flat rear tyre has been parked near hostel 3 gate for over a week.,Other
+Campus photography competition registration status,Need confirmation regarding whether team registration for the annual photography contest was received.,Other
