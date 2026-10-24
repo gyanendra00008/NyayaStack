@@ -21,11 +21,17 @@ Before starting the server, ensure your `.env` file in the `backend/` directory 
 | Variable | Type | Description |
 | :--- | :--- | :--- |
 | `PORT` | Number | Port on which Express server listens (e.g. `3000`) |
-| `MONGO_URI` | String | MongoDB connection string (e.g. `mongodb://localhost:27017/nyayastack`) |
+| `MONGO_URI` | String | MongoDB connection string for Authentication Database (e.g. `mongodb://localhost:27017/nyayastack`) |
+| `STORAGE_MONGO_URI` | String | Separate MongoDB connection string for Complaints Storage Database |
 | `JWT_SECRET` | String | Secret key for signing and verifying JSON Web Tokens |
 | `BREVO_API_KEY` | String | Brevo (Sendinblue) API key for transactional emails |
 | `MAIL_FROM` | String | Sender email address (must be a verified sender in Brevo) |
 | `MAIL_FROM_NAME` | String | Display name for outgoing emails (e.g. `NyayaStack`) |
+| `CLOUDINARY_CLOUD_NAME` | String | Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | String | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | String | Cloudinary API secret (kept strictly server-side) |
+| `CLOUDINARY_FOLDER` | String | *(Optional)* Target folder in Cloudinary (defaults to `nyayastack/complaints`) |
+| `CLOUDINARY_DELIVERY_TYPE` | String | *(Optional)* Asset delivery access mode (`upload`, `authenticated`, or `private`; defaults to `upload`) |
 
 ---
 
@@ -57,6 +63,8 @@ The backend implements tiered rate limiting via `express-rate-limit`:
 | `POST` | `/auth/change-password` | Change password for authenticated session | Login Limiter (5 / 15 min) |
 | `GET` | `/auth/me` | Retrieve profile of authenticated & verified user | Global |
 | `GET` | `/auth/admin/dashboard` | Administrative resource protected with RBAC (`admin` role) | Global |
+| `POST` | `/complaints` | Submit a new complaint with up to 5 file attachments | Global |
+| `GET` | `/complaints/my` | Retrieve authenticated user's submitted complaints with pagination | Global |
 
 ---
 
@@ -484,6 +492,142 @@ Allows an authenticated user (via JWT Bearer token or cookie) to change their pa
 
 ---
 
+### 10. Submit Complaint
+
+#### `POST /api/complaints`
+Submits a new formal grievance / petition with optional supporting file attachments uploaded directly to Cloudinary. Complaints are persisted to a physically isolated storage database configured via `STORAGE_MONGO_URI`.
+
+- **Authentication**: JWT Auth Token (`Authorization: Bearer <token>` or cookie `token`)
+- **Request Format**: `multipart/form-data`
+- **Rate Limit**: Global Limiter (300 requests per 15 min)
+
+**Form Fields:**
+
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `category` | String | Yes | Complaint category. Supported: `Hostel`, `Academic`, `Infrastructure`, `Administration`, `Finance`, `Harassment`, `Ragging`, `Discipline`, `Mess`, `Transport`, `Medical`, `Other` |
+| `title` | String | Yes | Short problem title (3 to 200 characters) |
+| `description` | String | Yes | Detailed problem description (10 to 5000 characters) |
+| `attachments` | File(s) | No | Up to 5 files (field name: `attachments`). Supported formats: JPEG, PNG, WEBP, MP4, WEBM, PDF |
+
+**Upload Rules & Security Limits:**
+- **Maximum Files**: 5 attachments per complaint.
+- **Maximum Request Size**: 10 MB total across all attachments.
+- **Binary Signature Inspection**: Validates binary magic numbers (e.g. `%PDF`, `89 50 4E 47`, `FF D8 FF`) to block spoofed or renamed executables.
+- **No Disk Buffering**: Uploads are processed in-memory (`memoryStorage`).
+- **Atomic Rollback**: If Cloudinary upload succeeds but MongoDB persistence fails, or if a multi-file upload fails midway, already-uploaded Cloudinary assets are deleted immediately.
+
+**Response (`201 Created`):**
+```json
+{
+  "success": true,
+  "message": "Complaint submitted successfully",
+  "data": {
+    "complaintId": "VSP-M4T9B2-3A7F1C9E",
+    "category": "Hostel",
+    "title": "Water supply issue in Block B",
+    "description": "There has been no water supply on the 3rd floor since morning.",
+    "status": "Filed",
+    "attachments": [
+      {
+        "url": "https://res.cloudinary.com/.../nyayastack/complaints/tap_photo.jpg",
+        "publicId": "nyayastack/complaints/tap_photo_xyz",
+        "resourceType": "image",
+        "format": "jpg",
+        "size": 104230,
+        "originalName": "tap_photo.jpg"
+      }
+    ],
+    "createdAt": "2026-10-24T10:40:00.000Z",
+    "updatedAt": "2026-10-24T10:40:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+- `400 Bad Request` (Missing fields):
+  ```json
+  { "success": false, "message": "Missing required fields. 'category', 'title', and 'description' are all required." }
+  ```
+- `400 Bad Request` (Invalid category):
+  ```json
+  { "success": false, "message": "Invalid category 'WrongCategory'. Supported categories: Hostel, Academic, Infrastructure, Administration, Finance, Harassment, Ragging, Discipline, Mess, Transport, Medical, Other" }
+  ```
+- `400 Bad Request` (Empty file):
+  ```json
+  { "success": false, "message": "Empty file 'photo.jpg' is not allowed" }
+  ```
+- `400 Bad Request` (Unsupported format or magic byte mismatch):
+  ```json
+  { "success": false, "message": "Invalid attachment 'document.exe': Unsupported file extension (.exe). Allowed: JPEG, JPG, PNG, WEBP, MP4, WEBM, PDF" }
+  ```
+- `401 Unauthorized`:
+  ```json
+  { "success": false, "message": "Authentication token required. Please log in." }
+  ```
+- `413 Payload Too Large`:
+  ```json
+  { "success": false, "message": "Total upload size exceeds the maximum limit of 10 MB" }
+  ```
+
+---
+
+### 11. Retrieve My Complaints
+
+#### `GET /api/complaints/my`
+Retrieves complaints submitted exclusively by the authenticated user from the separate storage database. Results are sorted in descending order of creation (`createdAt: -1`). Never exposes internal MongoDB IDs or another user's complaints.
+
+- **Authentication**: JWT Auth Token (`Authorization: Bearer <token>` or cookie `token`)
+- **Query Parameters**:
+  - `page` (Number, Optional): Page number (positive integer, default: `1`).
+  - `limit` (Number, Optional): Number of complaints per page (integer between `1` and `50`, default: `10`).
+
+**Response (`200 OK`):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "complaintId": "VSP-M4T9B2-3A7F1C9E",
+      "category": "Hostel",
+      "title": "Water supply issue in Block B",
+      "description": "There has been no water supply on the 3rd floor since morning.",
+      "status": "Filed",
+      "attachments": [
+        {
+          "url": "https://res.cloudinary.com/.../nyayastack/complaints/tap_photo.jpg",
+          "publicId": "nyayastack/complaints/tap_photo_xyz",
+          "resourceType": "image",
+          "format": "jpg",
+          "size": 104230,
+          "originalName": "tap_photo.jpg"
+        }
+      ],
+      "createdAt": "2026-10-24T10:40:00.000Z",
+      "updatedAt": "2026-10-24T10:40:00.000Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+**Error Responses:**
+- `400 Bad Request` (Invalid query parameter):
+  ```json
+  { "success": false, "message": "Invalid query parameter 'limit'. Must be an integer between 1 and 50." }
+  ```
+- `401 Unauthorized`:
+  ```json
+  { "success": false, "message": "Authentication token required. Please log in." }
+  ```
+
+---
+
 ## 💻 Development Commands
 
 From the `backend/` directory:
@@ -497,6 +641,9 @@ npm run dev
 
 # Start server in production mode
 npm start
+
+# Run unit and integration tests (Auth & Complaint test suites)
+npm test
 ```
 
 ---
@@ -507,24 +654,34 @@ npm start
 backend/
 ├── src/
 │   ├── config/
-│   │   └── db.js                       # MongoDB connection setup
+│   │   ├── db.js                       # Primary (auth) & Storage (complaints) DB connections
+│   │   └── jwt.config.js               # JWT algorithms & cookie options
 │   ├── controllers/
-│   │   ├── auth.controller.js          # Register, login, verify-otp, resend-otp
+│   │   ├── auth.controller.js          # Register, login, verify-otp, resend-otp, reset-password
+│   │   ├── complaint.controller.js     # Create complaint & retrieve my complaints
 │   │   └── health.controller.js        # Health check handler
 │   ├── middleware/
-│   │   ├── auth.middleware.js          # Input validations & user existence checks
+│   │   ├── auth.middleware.js          # JWT authentication & RBAC middleware
+│   │   ├── complaint.middleware.js     # Multer memory storage, 10MB quota & field validations
 │   │   ├── errorHandler.js             # 404 & centralized error handlers
-│   │   └── rateLimit.middleware.js     # Rate limiting policies
+│   │   └── rateLimit.middleware.js     # Tiered rate limiting policies
 │   ├── models/
-│   │   └── auth.models.js              # User Mongoose schema (with OTP fields)
+│   │   ├── auth.models.js              # User Mongoose schema (Auth DB)
+│   │   └── complaint.models.js         # Complaint Mongoose schema (Storage DB)
 │   ├── routes/
 │   │   ├── auth.routes.js              # Auth route definitions
+│   │   ├── complaint.routes.js         # Complaint upload & retrieval route definitions
 │   │   └── health.routes.js            # Health route definitions
 │   ├── services/
+│   │   ├── cloudinary.service.js       # Cloudinary buffer upload, destroy & atomic cleanup
 │   │   └── mail.service.js             # Brevo email dispatcher & OTP templates
 │   ├── utils/
+│   │   ├── fileSignature.utils.js      # Binary magic number detection (PDF, PNG, JPG, WEBP, MP4, WEBM)
 │   │   └── otp.utils.js                # Cryptographic OTP generator, hasher & validator
 │   └── app.js                          # Express app configuration & middleware pipeline
+├── tests/
+│   ├── auth.test.js                    # 23 automated security & auth test cases
+│   └── complaint.test.js               # 20 automated complaint upload, storage & retrieval test cases
 ├── server.js                           # Server entry point & database initializer
 ├── package.json
 └── README.md                           # This documentation file

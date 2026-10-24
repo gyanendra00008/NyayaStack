@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const healthRoutes = require('./routes/health.routes.js');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler.js');
 const authRoutes = require('./routes/auth.routes.js');
+const complaintRoutes = require('./routes/complaint.routes.js');
 const { generalLimiter } = require('./middleware/rateLimit.middleware.js');
 
 const app = express();
@@ -29,6 +30,7 @@ app.use(generalLimiter);
 // Application routes
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/complaints', complaintRoutes);
 
 // Error handlers
 app.use(notFoundHandler);
