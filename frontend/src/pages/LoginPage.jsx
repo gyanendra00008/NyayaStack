@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import bg from '../assets/2ndbg.png'
 import logo from '../assets/logo.png'
@@ -16,7 +16,7 @@ function EyeIcon({ open }) {
   )
 }
 
-function LoginPage() {
+function Login() {
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -148,9 +148,17 @@ function LoginPage() {
             Sign Up
           </Link>
         </p>
+
+        <p className="mt-3 text-center text-sm text-[#3b2a20]/80">
+          Are you an authority?{' '}
+          <Link to="/authority/login" className="text-[#7a1620] font-semibold hover:underline">
+            Authority Login
+          </Link>
+        </p>
       </div>
     </div>
   )
 }
 
-export default LoginPage
+export default Login
+

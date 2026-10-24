@@ -1,0 +1,47 @@
+import React from "react";
+import { Routes, Route } from "react-router-dom";
+
+import HomePage from "../pages/HomePage";
+import LoginPage from "../pages/LoginPage";
+import RegisterPage from "../pages/RegisterPage";
+import AuthorityLogin from "../pages/AuthorityLogin";
+import AuthorityRegister from "../pages/AuthorityRegister";
+import NotFoundPage from "../pages/NotFoundPage";
+
+import UserDashboard from "../pages/4_UserDashboard";
+import FileComplaint from "../pages/5_File_Complaint";
+import MyPetitions from "../pages/6_Petition_filed";
+import PetitionDetail from "../pages/7_Petition_detail";
+import Notifications from "../pages/8_Notifications";
+import OfficerDashboard from "../pages/9_officer_dashboard";
+import AuditLedger from "../pages/10_audit_ledger";
+import PublicTransparency from "../pages/11_public_transparency";
+
+export default function AppRoutes() {
+  return (
+    <Routes>
+      {/* Public */}
+      <Route path="/" element={<HomePage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/signup" element={<RegisterPage />} />
+      <Route path="/authority-login" element={<AuthorityLogin />} />
+      <Route path="/authority-register" element={<AuthorityRegister />} />
+      <Route path="/publictrans" element={<PublicTransparency />} />
+
+      {/* Student */}
+      <Route path="/dashboard" element={<UserDashboard />} />
+      <Route path="/file-complaint" element={<FileComplaint />} />
+      <Route path="/my-petitions" element={<MyPetitions />} />
+      <Route path="/petition-detail" element={<PetitionDetail />} />
+      <Route path="/notifications" element={<Notifications />} />
+      <Route path="/ledger" element={<AuditLedger />} />
+
+      {/* Officer */}
+      <Route path="/officerdash" element={<OfficerDashboard />} />
+
+      {/* Unknown URL */}
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+  );
+}
