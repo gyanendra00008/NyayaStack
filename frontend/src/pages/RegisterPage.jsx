@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import bg from "../assets/2ndbg.png";
 import logo from "../assets/logo.png";
@@ -185,3 +185,4 @@ function Register() {
 }
 
 export default Register;
+

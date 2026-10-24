@@ -30,7 +30,7 @@ const Notifications = () => {
     <div className="text-stone-800 flex h-screen w-screen overflow-hidden antialiased" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", backgroundColor: '#FAF7F2' }}>
       <aside className="w-64 h-screen bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0">
         <div className="flex flex-col h-full">
-          <a href="1_landing.html" className="h-16 flex items-center gap-2.5 px-6 border-b border-stone-200/80 shrink-0">
+          <a href="/" className="h-16 flex items-center gap-2.5 px-6 border-b border-stone-200/80 shrink-0">
             <div className="w-8 h-8 rounded-full bg-[#6B1724] text-[#E8C582] flex items-center justify-center text-sm"><i className="fa-solid fa-scale-balanced"></i></div>
             <span className="font-bold text-lg text-[#6B1724]" style={{ fontFamily: "'Cinzel', serif" }}>NyayaStack</span>
           </a>
@@ -40,15 +40,15 @@ const Notifications = () => {
             <a href="/my-petitions" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60"><i className="fa-solid fa-folder-open w-4"></i> My Petitions</a>
             <a href="/petition-detail" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60"><i className="fa-solid fa-comments w-4"></i> Inquiry Chat</a>
             <a className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#6B1724] text-white shadow-sm"><i className="fa-solid fa-bell w-4"></i> Notifications <span className="ml-auto bg-rose-100 text-[#6B1724] px-1.5 py-0.5 rounded-full text-[10px] font-bold">{unreadCount}</span></a>
-            <a href="10_audit_ledger.html" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60"><i className="fa-solid fa-fingerprint w-4"></i> Audit Ledger</a>
-            <a href="11_public_transparency.html" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60"><i className="fa-solid fa-chart-pie w-4"></i> Public Transparency</a>
+            <a href="/audit-ledger" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60"><i className="fa-solid fa-fingerprint w-4"></i> Audit Ledger</a>
+            <a href="/transparency" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60"><i className="fa-solid fa-chart-pie w-4"></i> Public Transparency</a>
           </nav>
           <div className="p-4 border-t border-stone-200/80 flex items-center justify-between bg-[#F0E8DC] shrink-0">
             <div className="flex items-center gap-2.5">
               <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" alt="Avatar" className="w-8 h-8 rounded-full border border-[#6B1724]" />
               <div><p className="text-xs font-bold">Kamakshi</p><p className="text-[10px] text-stone-500 font-mono">22BCS045</p></div>
             </div>
-            <a href="2_login.html" className="text-stone-400 hover:text-[#6B1724] p-1.5"><i className="fa-solid fa-arrow-right-from-bracket text-xs"></i></a>
+            <a href="/login" className="text-stone-400 hover:text-[#6B1724] p-1.5"><i className="fa-solid fa-arrow-right-from-bracket text-xs"></i></a>
           </div>
         </div>
       </aside>

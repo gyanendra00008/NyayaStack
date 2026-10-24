@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link } from "react-router-dom";
 import bg from "../assets/2ndbg.png";
 import logo from "../assets/logo.png";
@@ -281,3 +281,4 @@ function AuthorityRegister() {
 }
 
 export default AuthorityRegister;
+

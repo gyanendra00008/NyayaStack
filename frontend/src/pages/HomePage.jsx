@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+﻿import { Link } from 'react-router-dom'
 import bg from '../assets/bg.jpeg'
 import logo from '../assets/logo.png'
 
@@ -21,10 +21,10 @@ function Home() {
 
         {/* Center: links */}
         <div className="hidden md:flex items-center gap-8 text-sm font-medium justify-self-center">
-          <a href="#home" className="text-[#7a1620]">Home</a>
-          <a href="#about" className="hover:text-[#7a1620] transition">About</a>
-          <a href="#features" className="hover:text-[#7a1620] transition">Features</a>
-          <a href="#statistics" className="hover:text-[#7a1620] transition">Statistics</a>
+          <Link to="#home" className="text-[#7a1620]">Home</Link>
+          <Link to="#about" className="hover:text-[#7a1620] transition">About</Link>
+          <Link to="#features" className="hover:text-[#7a1620] transition">Features</Link>
+          <Link to="#statistics" className="hover:text-[#7a1620] transition">Statistics</Link>
         </div>
 
         {/* Right: buttons */}
@@ -104,3 +104,4 @@ function Home() {
 }
 
 export default Home
+
