@@ -223,11 +223,21 @@ const sendOtpEmail = async (optionsOrEmail, otpParam, extraOptions = {}) => {
     throw new Error('OTP is required to send verification email');
   }
 
-  // Log OTP to backend console so development and testing is never blocked
-  console.log(`\n==================================================`);
-  console.log(`📧 [NyayaStack OTP] Verification Code for ${to}: ${otp}`);
-  console.log(`⏳ Valid for ${expiryMinutes} minutes`);
-  console.log(`==================================================\n`);
+  // Only log OTP details in non-production environments
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`\n==================================================`);
+    console.log(`📧 [NyayaStack OTP] Verification Code for ${to}: ${otp}`);
+    console.log(`⏳ Valid for ${expiryMinutes} minutes`);
+    console.log(`==================================================\n`);
+  }
+
+  // In test environment, simulate successful delivery without calling external Brevo API
+  if (process.env.NODE_ENV === 'test') {
+    return {
+      success: true,
+      messageId: `test-otp-${Date.now()}`,
+    };
+  }
 
   const { htmlContent, textContent } = generateOtpEmailTemplate({
     otp,
@@ -244,9 +254,182 @@ const sendOtpEmail = async (optionsOrEmail, otpParam, extraOptions = {}) => {
   });
 };
 
+/**
+ * Generates responsive HTML and plain text templates for Password Reset OTP verification
+ * @param {Object} params
+ * @param {string|number} params.otp - The OTP code
+ * @param {string} [params.name] - User's name or username
+ * @param {number} [params.expiryMinutes=10] - OTP validity duration in minutes
+ * @returns {{ htmlContent: string, textContent: string }}
+ */
+const generatePasswordResetOtpEmailTemplate = ({ otp, name, expiryMinutes = 10 }) => {
+  const recipientName = name ? String(name).trim() : 'User';
+  const validDuration = expiryMinutes || 10;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Your Password - NyayaStack</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f1f5f9; padding: 30px 15px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 540px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #0f172a; padding: 28px 32px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700; letter-spacing: 0.5px;">NyayaStack</h1>
+              <p style="margin: 6px 0 0 0; color: #94a3b8; font-size: 13px;">Secure Identity & Legal Management Platform</p>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding: 32px 32px 24px 32px;">
+              <h2 style="margin: 0 0 16px 0; color: #0f172a; font-size: 20px; font-weight: 600;">Password Reset Code</h2>
+              <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #334155;">
+                Hello <strong>${recipientName}</strong>,
+              </p>
+              <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #334155;">
+                We received a request to reset the password for your NyayaStack account. Please use the following One-Time Password (OTP) to proceed:
+              </p>
+              <!-- OTP Box -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 24px 0;">
+                <tr>
+                  <td align="center" style="background-color: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 8px; padding: 18px 24px;">
+                    <span style="font-family: 'Courier New', Courier, monospace; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #0f172a; display: inline-block;">
+                      ${otp}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.6; color: #475569;">
+                ⏳ This password reset code is valid for <strong>${validDuration} minutes</strong>.
+              </p>
+              <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #64748b;">
+                For your security, never share this OTP with anyone. NyayaStack staff will never ask for your verification code.
+              </p>
+              <div style="border-top: 1px solid #e2e8f0; padding-top: 18px;">
+                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #94a3b8;">
+                  If you did not request a password reset, please ignore this email or consider securing your account immediately.
+                </p>
+              </div>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; padding: 20px 32px; text-align: center; border-top: 1px solid #f1f5f9;">
+              <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+                &copy; ${new Date().getFullYear()} NyayaStack. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+
+  const textContent = `
+Hello ${recipientName},
+
+We received a request to reset the password for your NyayaStack account.
+
+Your One-Time Password (OTP) for password reset is: ${otp}
+
+This code is valid for ${validDuration} minutes.
+
+For your security, please do not share this code with anyone.
+If you did not initiate this request, you can safely ignore this email.
+
+Regards,
+NyayaStack Team
+  `.trim();
+
+  return { htmlContent, textContent };
+};
+
+/**
+ * Sends a password reset OTP email to the user
+ * @param {string|Object} optionsOrEmail
+ * @param {string|number} [otpParam]
+ * @param {Object} [extraOptions]
+ * @returns {Promise<Object>}
+ */
+const sendPasswordResetOtpEmail = async (optionsOrEmail, otpParam, extraOptions = {}) => {
+  let to;
+  let otp;
+  let name;
+  let expiryMinutes = 10;
+  let sender;
+
+  if (typeof optionsOrEmail === 'object' && optionsOrEmail !== null) {
+    to = optionsOrEmail.to || optionsOrEmail.email;
+    otp = optionsOrEmail.otp;
+    name = optionsOrEmail.name || optionsOrEmail.username;
+    expiryMinutes = optionsOrEmail.expiryMinutes || 10;
+    sender = optionsOrEmail.sender;
+  } else {
+    to = optionsOrEmail;
+    otp = otpParam;
+    if (typeof extraOptions === 'object' && extraOptions !== null) {
+      name = extraOptions.name || extraOptions.username;
+      expiryMinutes = extraOptions.expiryMinutes || 10;
+      sender = extraOptions.sender;
+    } else if (typeof extraOptions === 'string') {
+      name = extraOptions;
+    }
+  }
+
+  if (!to) {
+    throw new Error('Recipient email address is required');
+  }
+
+  if (!otp) {
+    throw new Error('OTP is required to send password reset email');
+  }
+
+  // Only log OTP details in non-production environments
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`\n==================================================`);
+    console.log(`📧 [NyayaStack Password Reset OTP] Code for ${to}: ${otp}`);
+    console.log(`⏳ Valid for ${expiryMinutes} minutes`);
+    console.log(`==================================================\n`);
+  }
+
+  // In test environment, simulate successful delivery without calling external Brevo API
+  if (process.env.NODE_ENV === 'test') {
+    return {
+      success: true,
+      messageId: `test-reset-otp-${Date.now()}`,
+    };
+  }
+
+  const { htmlContent, textContent } = generatePasswordResetOtpEmailTemplate({
+    otp,
+    name,
+    expiryMinutes,
+  });
+
+  return await sendEmail({
+    to,
+    subject: `${otp} is your NyayaStack password reset code`,
+    htmlContent,
+    textContent,
+    sender,
+  });
+};
+
 module.exports = {
   getBrevoClient,
   sendEmail,
   sendOtpEmail,
+  sendPasswordResetOtpEmail,
   generateOtpEmailTemplate,
+  generatePasswordResetOtpEmailTemplate,
 };
