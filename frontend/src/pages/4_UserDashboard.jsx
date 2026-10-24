@@ -32,7 +32,7 @@ const UserDashboard = () => {
           </a>
 
           <nav className="p-4 space-y-1 text-xs font-semibold">
-            <a href="4_user_dashboard.html" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#6B1724] text-white shadow-sm">
+            <a href="/dashboard" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#6B1724] text-white shadow-sm">
               <i className="fa-solid fa-house w-4"></i> Dashboard
             </a>
             <a href="/file-complaint" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
@@ -48,14 +48,14 @@ const UserDashboard = () => {
               <i className="fa-solid fa-bell w-4"></i> Notifications
               <span className="ml-auto bg-rose-100 text-[#6B1724] px-1.5 py-0.5 rounded-full text-[10px] font-bold">4</span>
             </a>
-            <a href="10_audit_ledger.html" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
+            <a href="/ledger" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
               <i className="fa-solid fa-fingerprint w-4"></i> Audit Ledger
             </a>
-            <a href="11_public_transparency.html" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
+            <a href="/publictrans" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
               <i className="fa-solid fa-chart-pie w-4"></i> Public Transparency
             </a>
             <div className="pt-3 border-t border-stone-200/60 mt-3">
-              <a href="9_officer_dashboard.html" className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-amber-900 bg-amber-100/50 hover:bg-amber-100 transition text-[11px]">
+              <a href="/officerdash" className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-amber-900 bg-amber-100/50 hover:bg-amber-100 transition text-[11px]">
                 <i className="fa-solid fa-user-shield w-4 text-amber-700"></i> Switch to Officer View
               </a>
             </div>
