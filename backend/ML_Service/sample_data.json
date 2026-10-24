@@ -1,0 +1,196 @@
+[
+  {
+    "id": "CMP001",
+    "student_name": "Aarav Sharma",
+    "student_id": "21BCS012",
+    "text": "wifi nhi chal rha subah se library me bilkul range nhi h",
+    "timestamp": "2026-10-22 10:15"
+  },
+  {
+    "id": "CMP002",
+    "student_name": "Priya Verma",
+    "student_id": "21BCS089",
+    "text": "Campus wifi speed is too slow in academic block 2, unable to open portal",
+    "timestamp": "2026-10-22 10:22"
+  },
+  {
+    "id": "CMP003",
+    "student_name": "Rohan Gupta",
+    "student_id": "22BEE045",
+    "text": "Internet bilkul dead hai hostel 3 me, router red light blink kr rha h",
+    "timestamp": "2026-10-22 10:30"
+  },
+  {
+    "id": "CMP004",
+    "student_name": "Neha Patel",
+    "student_id": "23BME019",
+    "text": "WiFi issue again! Disconnecting repeatedly in CS lab",
+    "timestamp": "2026-10-22 11:05"
+  },
+  {
+    "id": "CMP005",
+    "student_name": "Vikas Singh",
+    "student_id": "22BCE033",
+    "text": "Mess me aaj ka khana bilkul thanda tha aur rotiya kachi thi",
+    "timestamp": "2026-10-22 11:15"
+  },
+  {
+    "id": "CMP006",
+    "student_name": "Ananya Joshi",
+    "student_id": "21BCH008",
+    "text": "Poor quality food in girls mess, insects found in salad today",
+    "timestamp": "2026-10-22 11:40"
+  },
+  {
+    "id": "CMP007",
+    "student_name": "Kabir Khan",
+    "student_id": "23BCS102",
+    "text": "Mess food quality is getting worse everyday, oily and unhygienic",
+    "timestamp": "2026-10-22 12:10"
+  },
+  {
+    "id": "CMP008",
+    "student_name": "Deepak Yadav",
+    "student_id": "22BEC077",
+    "text": "Hostel B block washroom geyser is broken, garam pani nhi aa rha winter me",
+    "timestamp": "2026-10-22 12:25"
+  },
+  {
+    "id": "CMP009",
+    "student_name": "Simran Kaur",
+    "student_id": "21BEE054",
+    "text": "Geyser not working in 2nd floor hostel wing A, please repair asap",
+    "timestamp": "2026-10-22 12:35"
+  },
+  {
+    "id": "CMP010",
+    "student_name": "Amit Rawat",
+    "student_id": "22BCS110",
+    "text": "Maths professor hasn't completed module 4 and 5 yet, exam is next week",
+    "timestamp": "2026-10-22 13:00"
+  },
+  {
+    "id": "CMP011",
+    "student_name": "Pooja Hegde",
+    "student_id": "22BCS066",
+    "text": "Faculty missing lectures frequently, syllabus is lagging behind drastically",
+    "timestamp": "2026-10-22 13:10"
+  },
+  {
+    "id": "CMP012",
+    "student_name": "Rahul Tiwari",
+    "student_id": "20BCE023",
+    "text": "Admit card download error: showing payment pending even though fees is paid",
+    "timestamp": "2026-10-22 13:45"
+  },
+  {
+    "id": "CMP013",
+    "student_name": "Sneha Roy",
+    "student_id": "21BEC049",
+    "text": "Admit card portal me photo blank aa rhi hai exam permit card me",
+    "timestamp": "2026-10-22 14:02"
+  },
+  {
+    "id": "CMP014",
+    "student_name": "Manish Soni",
+    "student_id": "23BEE031",
+    "text": "Account se semester fee cut gayi hai par receipt generate nhi hui",
+    "timestamp": "2026-10-22 14:20"
+  },
+  {
+    "id": "CMP015",
+    "student_name": "Divya Nair",
+    "student_id": "22BCH015",
+    "text": "Fee payment debited from bank but ERP portal still showing pending fees",
+    "timestamp": "2026-10-22 14:35"
+  },
+  {
+    "id": "CMP016",
+    "student_name": "Harsh Vardhan",
+    "student_id": "21BME090",
+    "text": "College bus route 7 is arriving 45 minutes late every morning",
+    "timestamp": "2026-10-22 15:00"
+  },
+  {
+    "id": "CMP017",
+    "student_name": "Kritika Das",
+    "student_id": "22BCS142",
+    "text": "Bus timing issue: bus no 7 daily misses early morning lectures",
+    "timestamp": "2026-10-22 15:15"
+  },
+  {
+    "id": "CMP018",
+    "student_name": "Siddharth Jain",
+    "student_id": "23BME044",
+    "text": "Seniors are forcing freshers outside campus gate in the evening, ragging concern",
+    "timestamp": "2026-10-22 15:40"
+  },
+  {
+    "id": "CMP019",
+    "student_name": "Tanvi Sharma",
+    "student_id": "21BCS034",
+    "text": "Girls hostel pathway has no streetlights, pitch dark and feels unsafe at night",
+    "timestamp": "2026-10-22 16:00"
+  },
+  {
+    "id": "CMP020",
+    "student_name": "Gaurav Mehta",
+    "student_id": "22BEE088",
+    "text": "Lost my college ID card near cafeteria today, please update if found",
+    "timestamp": "2026-10-22 16:20"
+  },
+  {
+    "id": "CMP021",
+    "student_name": "Kunal Verma",
+    "student_id": "22BCS210",
+    "text": "Bhai net bilkul nhi chal rha speed zero h aur baar baar disconnect ho rha h",
+    "category": "infrastructure",
+    "category_confidence": 0.471,
+    "timestamp": "2026-10-22 17:27"
+  },
+  {
+    "id": "CMP022",
+    "student_name": "Ritu Rawat",
+    "student_id": "23BCE091",
+    "text": "Mess me dinner bilkul kacha h roti me se smell aa rhi h",
+    "category": "Hostel & mess",
+    "category_confidence": 0.54,
+    "timestamp": "2026-10-22 17:28"
+  },
+  {
+    "id": "CMP023",
+    "student_name": "Avni",
+    "student_id": "20281033",
+    "text": "mess me khana acha nhi h",
+    "category": "Hostel & mess",
+    "category_confidence": 0.281,
+    "timestamp": "2026-10-22 17:32"
+  },
+  {
+    "id": "CMP024",
+    "student_name": "Avni",
+    "student_id": "20281033",
+    "text": "bus bahut late ayi",
+    "category": "transport",
+    "category_confidence": 0.623,
+    "timestamp": "2026-10-22 17:33"
+  },
+  {
+    "id": "CMP025",
+    "student_name": "Avni",
+    "student_id": "20281033",
+    "text": "hostel me pani bahut ganda aaa rha h",
+    "category": "Hostel & mess",
+    "category_confidence": 0.246,
+    "timestamp": "2026-10-22 17:52"
+  },
+  {
+    "id": "CMP026",
+    "student_name": "kamakshi",
+    "student_id": "20298098",
+    "text": "exam me paper leak",
+    "category": "exams and results",
+    "category_confidence": 0.312,
+    "timestamp": "2026-10-22 18:32"
+  }
+]
