@@ -1,14 +1,17 @@
 const { COMPLAINT_CATEGORIES } = require("../models/complaint.models.js");
 
-const DEFAULT_ML_SERVICE_URL = "http://127.0.0.1:8001";
-const DEFAULT_TIMEOUT_MS = 4000;
+const DEFAULT_TIMEOUT_MS = 5000;
 
 /**
  * Returns the configured base URL for the Python ML classification microservice.
+ * Reads strictly from the ML_SERVICE_URL environment variable.
  */
 function getMlServiceUrl() {
-  const url = process.env.ML_SERVICE_URL || DEFAULT_ML_SERVICE_URL;
-  return url.replace(/\/+$/, ""); // Remove trailing slash
+  const url = process.env.ML_SERVICE_URL;
+  if (!url) {
+    return "";
+  }
+  return url.trim().replace(/\/+$/, ""); // Remove trailing slash
 }
 
 /**
@@ -18,6 +21,15 @@ function getMlServiceUrl() {
  */
 async function checkMLHealth() {
   const mlUrl = getMlServiceUrl();
+  if (!mlUrl) {
+    return {
+      available: false,
+      status: "unconfigured",
+      modelLoaded: false,
+      detail: "ML_SERVICE_URL environment variable is not defined",
+    };
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
@@ -97,6 +109,11 @@ async function predictCategory(title, description) {
   }
 
   const mlUrl = getMlServiceUrl();
+  if (!mlUrl) {
+    const configError = new Error("ML_SERVICE_URL environment variable is not defined");
+    configError.statusCode = 503;
+    throw configError;
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
@@ -193,6 +210,10 @@ async function predictCategory(title, description) {
  */
 async function invokeMlServiceOnStartup() {
   const mlUrl = getMlServiceUrl();
+  if (!mlUrl) {
+    console.warn("[ML Service] ML_SERVICE_URL environment variable is not configured. Skipping startup probe.");
+    return { available: false, error: "ML_SERVICE_URL not configured" };
+  }
   console.log(`[ML Service] Probing Vishanti Petition ML microservice at ${mlUrl}...`);
 
   try {

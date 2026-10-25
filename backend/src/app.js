@@ -16,10 +16,25 @@ if (process.env.NODE_ENV === 'production' || process.env.TRUST_PROXY) {
 
 // CORS configuration supporting credentials safely (no wildcard with credentials)
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Parse allowed origins dynamically from CORS_ORIGIN environment variable
+    const allowedOrigins = process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',').map((item) => item.trim()).filter(Boolean)
+      : [];
+
+    // Allow non-browser requests (e.g. server-to-server, curl) with no Origin header
+    if (!origin) {
+      return callback(null, true);
+    }
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204,
 };
 app.use(cors(corsOptions));
 
