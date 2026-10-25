@@ -1,10 +1,12 @@
 ﻿import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import logo from '../assets/logo.png';
+import MobileNavToggle from '../components/MobileNavToggle';
 
 const UserDashboard = () => {
   const [userName, setUserName] = useState('User');
   const [userId, setUserId] = useState('22BCS045');
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     const savedName = localStorage.getItem('nyaya_user_name') || sessionStorage.getItem('nyaya_logged_user');
@@ -22,10 +24,13 @@ const UserDashboard = () => {
   }, []);
 
   return (
-    <div className="text-stone-800 flex h-screen w-screen overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="text-stone-800 flex h-dvh w-full overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      {/* Mobile backdrop */}
+      {navOpen && <div className="fixed inset-0 bg-black/40 z-20 md:hidden" onClick={() => setNavOpen(false)} />}
+
       {/* LEFT SIDEBAR */}
-      <aside className="w-64 h-full bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 select-none z-10">
-        <div>
+      <aside className={`fixed md:static inset-y-0 left-0 z-30 w-64 bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 select-none transform transition-transform duration-200 ${navOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+        <div className="overflow-y-auto">
           <Link to="/" className="h-16 flex items-center gap-2.5 px-6 border-b border-stone-200/80 hover:bg-stone-100/50 transition">
             <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
               <img src={logo} alt="NyayaStack" className="h-full w-full object-cover scale-[1.3]" />
@@ -65,11 +70,11 @@ const UserDashboard = () => {
         </div>
 
         <div className="p-4 border-t border-stone-200/80 flex items-center justify-between bg-[#F0E8DC]">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
             <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-[#6B1724]" />
-            <div>
-              <p className="text-xs font-bold text-stone-800">{userName}</p>
-              <p className="text-[10px] text-stone-500 font-mono">{userId}</p>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-stone-800 truncate">{userName}</p>
+              <p className="text-[10px] text-stone-500 font-mono truncate">{userId}</p>
             </div>
           </div>
           <Link to="/login" title="Logout" className="text-stone-400 hover:text-[#6B1724] p-1.5 transition">
@@ -79,21 +84,24 @@ const UserDashboard = () => {
       </aside>
 
       {/* RIGHT CONTENT */}
-      <main className="flex-1 h-full flex flex-col overflow-hidden bg-[#FAF7F2]">
-        <header className="h-16 bg-white border-b border-stone-200/80 px-8 flex items-center justify-between shrink-0 shadow-sm">
-          <div>
-            <h1 className="text-lg font-bold text-stone-800">Welcome back, <span>{userName}</span> 👋</h1>
-            <p className="text-xs text-stone-500">Track current status and institutional redressal actions</p>
+      <main className="flex-1 min-w-0 h-full flex flex-col overflow-hidden bg-[#FAF7F2]">
+        <header className="h-16 bg-white border-b border-stone-200/80 px-4 md:px-8 flex items-center justify-between shrink-0 shadow-sm gap-2">
+          <div className="flex items-center min-w-0">
+            <MobileNavToggle onClick={() => setNavOpen(true)} />
+            <div className="min-w-0">
+              <h1 className="text-base md:text-lg font-bold text-stone-800 truncate">Welcome back, <span>{userName}</span> 👋</h1>
+              <p className="text-xs text-stone-500 hidden sm:block">Track current status and institutional redressal actions</p>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Link to="/file-complaint" className="px-4 py-2 bg-[#6B1724] hover:bg-[#54121C] text-white rounded-xl text-xs font-semibold shadow transition flex items-center gap-1.5">
-              <i className="fa-solid fa-plus text-[10px]"></i> File New Petition
+          <div className="flex items-center gap-3 shrink-0">
+            <Link to="/file-complaint" className="px-3 sm:px-4 py-2 bg-[#6B1724] hover:bg-[#54121C] text-white rounded-xl text-xs font-semibold shadow transition flex items-center gap-1.5">
+              <i className="fa-solid fa-plus text-[10px]"></i> <span className="hidden sm:inline">File New Petition</span>
             </Link>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+          <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link to="/my-petitions" className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm flex items-center justify-between hover:border-[#6B1724]/40 hover:shadow-md transition block group">
               <div>
                 <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Total Petitions</p>
@@ -129,13 +137,13 @@ const UserDashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-8 bg-white rounded-2xl border border-stone-200/80 shadow-sm p-6">
+            <div className="lg:col-span-8 bg-white rounded-2xl border border-stone-200/80 shadow-sm p-4 md:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-bold text-stone-800">My Recent Petitions</h2>
                 <Link to="/my-petitions" className="text-xs text-[#6B1724] font-bold hover:underline flex items-center gap-1">View All <i className="fa-solid fa-arrow-right text-[10px]"></i></Link>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                <table className="w-full min-w-[560px] text-left text-xs">
                   <thead>
                     <tr className="border-b border-stone-200 text-stone-400 font-semibold uppercase text-[10px]">
                       <th className="py-2.5 px-3">Petition ID</th>
@@ -171,7 +179,7 @@ const UserDashboard = () => {
                 </table>
               </div>
             </div>
-            <div className="lg:col-span-4 bg-white rounded-2xl border border-stone-200/80 shadow-sm p-6 flex flex-col justify-between">
+            <div className="lg:col-span-4 bg-white rounded-2xl border border-stone-200/80 shadow-sm p-4 md:p-6 flex flex-col justify-between">
               <div>
                 <h2 className="text-sm font-bold text-stone-800">SLA Compliance</h2>
                 <p className="text-[11px] text-stone-400 mt-0.5">Average resolution performance</p>
@@ -188,7 +196,7 @@ const UserDashboard = () => {
                   </div>
                 </div>
               </div>
-              <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs">
+              <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs gap-2">
                 <span className="text-stone-500 font-medium">Average Resolution Time:</span>
                 <span className="font-bold text-stone-800 font-mono">2.4 days</span>
               </div>
