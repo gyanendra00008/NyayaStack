@@ -1,13 +1,17 @@
-﻿import React from "react";
+﻿import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import MobileNavToggle from "../components/MobileNavToggle";
 
 export default function OfficerDashboard() {
+  const [navOpen, setNavOpen] = useState(false);
+
   return (
-    <div className="text-stone-800 flex h-screen w-screen overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="text-stone-800 flex h-dvh w-full overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      {navOpen && <div className="fixed inset-0 bg-black/40 z-20 md:hidden" onClick={() => setNavOpen(false)} />}
 
       {/* SIDEBAR */}
-      <aside className="w-64 h-full bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 select-none z-10">
-        <div>
+      <aside className={`fixed md:static inset-y-0 left-0 z-30 w-64 bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 select-none transform transition-transform duration-200 ${navOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}>
+        <div className="overflow-y-auto">
           <Link to="/" className="h-16 flex items-center gap-2.5 px-6 border-b border-stone-200/80 hover:bg-stone-100/50 transition">
             <div className="w-8 h-8 rounded-full bg-[#6B1724] text-[#E8C582] flex items-center justify-center text-sm shadow-sm">
               <i className="fa-solid fa-scale-balanced"></i>
@@ -49,19 +53,22 @@ export default function OfficerDashboard() {
       </aside>
 
       {/* MAIN */}
-      <main className="flex-1 h-full flex flex-col overflow-hidden bg-[#FAF7F2]">
-        <header className="h-16 bg-white border-b border-stone-200/80 px-8 flex items-center justify-between shrink-0 shadow-sm">
-          <div>
-            <h1 className="text-lg font-bold text-stone-800">Officer Redressal Console</h1>
-            <p className="text-xs text-stone-500">Real-Time Grievance Workqueue with AI Semantic Clustering</p>
+      <main className="flex-1 min-w-0 h-full flex flex-col overflow-hidden bg-[#FAF7F2]">
+        <header className="h-16 bg-white border-b border-stone-200/80 px-4 md:px-8 flex items-center justify-between gap-2 shrink-0 shadow-sm">
+          <div className="flex items-center min-w-0">
+            <MobileNavToggle onClick={() => setNavOpen(true)} />
+            <div className="min-w-0">
+              <h1 className="text-base md:text-lg font-bold text-stone-800 truncate">Officer Redressal Console</h1>
+              <p className="text-xs text-stone-500 hidden sm:block">Real-Time Grievance Workqueue with AI Semantic Clustering</p>
+            </div>
           </div>
-          <span className="text-xs font-semibold px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center gap-1.5">
+          <span className="hidden sm:flex text-xs font-semibold px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full items-center gap-1.5 whitespace-nowrap">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> SLA Active Oversight
           </span>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+          <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm flex items-center justify-between">
               <div><p className="text-[10px] font-bold text-stone-400 uppercase">Assigned to Me</p><h3 className="text-2xl font-extrabold mt-1">18</h3><p className="text-[10px] text-stone-400 mt-1">Across 8 categories</p></div>
               <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center text-xl"><i className="fa-solid fa-inbox"></i></div>
@@ -80,8 +87,8 @@ export default function OfficerDashboard() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-r from-rose-50/70 to-amber-50/70 p-6 rounded-2xl border border-[#6B1724]/20 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="bg-gradient-to-r from-rose-50/70 to-amber-50/70 p-4 md:p-6 rounded-2xl border border-[#6B1724]/20 shadow-sm space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-[#6B1724] text-[#E8C582] flex items-center justify-center text-sm"><i className="fa-solid fa-network-wired"></i></div>
                 <div><h3 className="font-bold text-sm text-[#6B1724]">AI Semantic Problem Clusters</h3><p className="text-xs text-stone-600">Grouped by issue similarity</p></div>
@@ -90,38 +97,38 @@ export default function OfficerDashboard() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
               <div className="bg-white p-5 rounded-xl border shadow-sm space-y-2.5">
-                <div className="flex justify-between"><span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold text-[10px]">Hostel & Mess</span><span className="font-bold text-rose-600">14 Complaints</span></div>
+                <div className="flex justify-between gap-2"><span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold text-[10px]">Hostel & Mess</span><span className="font-bold text-rose-600">14 Complaints</span></div>
                 <h4 className="font-bold text-sm">Block B Water Supply Disruption</h4>
                 <p className="text-stone-500">Low water pressure and broken pipes reported across 2nd & 3rd floors.</p>
-                <div className="pt-2.5 flex justify-between border-t"><span className="text-[10px] text-stone-400">Similarity: 96%</span>
+                <div className="pt-2.5 flex justify-between items-center border-t"><span className="text-[10px] text-stone-400">Similarity: 96%</span>
                 <button onClick={() => alert('14 complaints grouped into Single Master Resolution Ticket.')} className="px-3 py-1 bg-[#6B1724] text-white rounded-lg">Bulk Action</button></div>
               </div>
               <div className="bg-white p-5 rounded-xl border shadow-sm space-y-2.5">
-                <div className="flex justify-between"><span className="px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-bold text-[10px]">Harassment & Safety</span><span className="font-bold text-rose-600">8 Complaints</span></div>
+                <div className="flex justify-between gap-2"><span className="px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-bold text-[10px]">Harassment & Safety</span><span className="font-bold text-rose-600">8 Complaints</span></div>
                 <h4 className="font-bold text-sm">Gate No. 2 Evening Intimidation</h4>
                 <p className="text-stone-500">Repeated evening verbal harassment near campus perimeter.</p>
-                <div className="pt-2.5 flex justify-between border-t"><span className="text-[10px] text-stone-400">Similarity: 92%</span>
+                <div className="pt-2.5 flex justify-between items-center border-t"><span className="text-[10px] text-stone-400">Similarity: 92%</span>
                 <button onClick={() => alert('Campus Security CCTV review requisitioned for Gate No. 2.')} className="px-3 py-1 bg-[#6B1724] text-white rounded-lg">Bulk Action</button></div>
               </div>
               <div className="bg-white p-5 rounded-xl border shadow-sm space-y-2.5">
-                <div className="flex justify-between"><span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[10px]">Academics</span><span className="font-bold text-rose-600">11 Complaints</span></div>
+                <div className="flex justify-between gap-2"><span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[10px]">Academics</span><span className="font-bold text-rose-600">11 Complaints</span></div>
                 <h4 className="font-bold text-sm">Mid-Term Grading Re-Evaluation</h4>
                 <p className="text-stone-500">Discrepancy in CS-301 Algorithm marking scheme reported.</p>
-                <div className="pt-2.5 flex justify-between border-t"><span className="text-[10px] text-stone-400">Similarity: 88%</span>
+                <div className="pt-2.5 flex justify-between items-center border-t"><span className="text-[10px] text-stone-400">Similarity: 88%</span>
                 <button onClick={() => alert('Forwarded to Dean of Academic Affairs.')} className="px-3 py-1 bg-[#6B1724] text-white rounded-lg">Bulk Action</button></div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border shadow-sm p-6 space-y-4">
+          <div className="bg-white rounded-2xl border shadow-sm p-4 md:p-6 space-y-4">
             <div className="flex items-center justify-between"><h2 className="text-sm font-bold">My Assigned Petitions</h2><Link to="/my-petitions" className="text-xs text-[#6B1724] font-semibold">View All →</Link></div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full min-w-[600px] text-left text-xs">
                 <thead><tr className="border-b text-stone-400 uppercase text-[10px]"><th className="py-2.5 px-3">Petition ID</th><th className="py-2.5 px-3">Category</th><th className="py-2.5 px-3">Priority</th><th className="py-2.5 px-3">Filed On</th><th className="py-2.5 px-3">SLA Deadline</th><th className="py-2.5 px-3 text-right">Action</th></tr></thead>
                 <tbody className="divide-y font-medium">
-                  <tr className="hover:bg-stone-50"><td className="py-3.5 px-3 font-mono font-bold text-[#6B1724]">#NY-1048</td><td className="py-3.5 px-3">Harassment & Safety</td><td className="py-3.5 px-3"><span className="px-2 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">High</span></td><td className="py-3.5 px-3 text-stone-500">12 Oct 10:30</td><td className="py-3.5 px-3 text-rose-600 font-bold">01h 24m remaining</td><td className="py-3.5 px-3 text-right"><Link to="/petition-detail" className="px-3 py-1 bg-[#6B1724] text-white rounded-lg">Open Docket</Link></td></tr>
-                  <tr className="hover:bg-stone-50"><td className="py-3.5 px-3 font-mono font-bold text-[#6B1724]">#NY-1050</td><td className="py-3.5 px-3">Infrastructure</td><td className="py-3.5 px-3"><span className="px-2 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">High</span></td><td className="py-3.5 px-3 text-stone-500">12 Oct 14:00</td><td className="py-3.5 px-3">02h 10m</td><td className="py-3.5 px-3 text-right"><Link to="/petition-detail" className="px-3 py-1 bg-stone-100 rounded-lg">Open Docket</Link></td></tr>
-                  <tr className="hover:bg-stone-50"><td className="py-3.5 px-3 font-mono font-bold text-[#6B1724]">#NY-1049</td><td className="py-3.5 px-3">Hostel & Mess</td><td className="py-3.5 px-3"><span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">Medium</span></td><td className="py-3.5 px-3 text-stone-500">11 Oct 16:45</td><td className="py-3.5 px-3">05h 20m</td><td className="py-3.5 px-3 text-right"><Link to="/petition-detail" className="px-3 py-1 bg-stone-100 rounded-lg">Open Docket</Link></td></tr>
+                  <tr className="hover:bg-stone-50"><td className="py-3.5 px-3 font-mono font-bold text-[#6B1724]">#NY-1048</td><td className="py-3.5 px-3">Harassment & Safety</td><td className="py-3.5 px-3"><span className="px-2 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">High</span></td><td className="py-3.5 px-3 text-stone-500">12 Oct 10:30</td><td className="py-3.5 px-3 text-rose-600 font-bold">01h 24m remaining</td><td className="py-3.5 px-3 text-right"><Link to="/petition-detail" className="px-3 py-1 bg-[#6B1724] text-white rounded-lg whitespace-nowrap">Open Docket</Link></td></tr>
+                  <tr className="hover:bg-stone-50"><td className="py-3.5 px-3 font-mono font-bold text-[#6B1724]">#NY-1050</td><td className="py-3.5 px-3">Infrastructure</td><td className="py-3.5 px-3"><span className="px-2 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">High</span></td><td className="py-3.5 px-3 text-stone-500">12 Oct 14:00</td><td className="py-3.5 px-3">02h 10m</td><td className="py-3.5 px-3 text-right"><Link to="/petition-detail" className="px-3 py-1 bg-stone-100 rounded-lg whitespace-nowrap">Open Docket</Link></td></tr>
+                  <tr className="hover:bg-stone-50"><td className="py-3.5 px-3 font-mono font-bold text-[#6B1724]">#NY-1049</td><td className="py-3.5 px-3">Hostel & Mess</td><td className="py-3.5 px-3"><span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">Medium</span></td><td className="py-3.5 px-3 text-stone-500">11 Oct 16:45</td><td className="py-3.5 px-3">05h 20m</td><td className="py-3.5 px-3 text-right"><Link to="/petition-detail" className="px-3 py-1 bg-stone-100 rounded-lg whitespace-nowrap">Open Docket</Link></td></tr>
                 </tbody>
               </table>
             </div>

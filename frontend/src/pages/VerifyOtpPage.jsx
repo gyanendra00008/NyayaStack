@@ -87,7 +87,7 @@ function VerifyOtpPage() {
       className="min-h-screen flex items-center justify-center px-4 py-8 bg-cover bg-center"
       style={{ backgroundImage: `url(${bg})` }}
     >
-      <div className="w-full max-w-md bg-[#fdf8ec] rounded-2xl border border-[#e6d9b5] shadow-xl p-8">
+      <div className="w-full max-w-md bg-[#fdf8ec] rounded-2xl border border-[#e6d9b5] shadow-xl p-5 sm:p-8">
         <div className="flex items-center justify-center gap-2 mb-4">
           <img src={logo} alt="NyayaStack" className="h-10 w-10 object-contain" />
           <span className="text-2xl font-bold text-[#7a1620]">NyayaStack</span>
@@ -96,7 +96,7 @@ function VerifyOtpPage() {
         <h2 className="text-center text-2xl font-bold text-[#2b2118]">
           Verify Email
         </h2>
-        <p className="text-center text-sm text-gray-600 mb-6">
+        <p className="text-center text-sm text-gray-600 mb-6 break-words">
           6 digit OTP <span className="font-semibold">{email}</span> pe bheja gaya hai
         </p>
 
@@ -112,7 +112,7 @@ function VerifyOtpPage() {
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
               placeholder="______"
-              className="w-full px-4 py-3 rounded-lg border border-[#e6d9b5] bg-white text-center text-2xl tracking-[0.5em] outline-none focus:border-[#7a1620] focus:ring-1 focus:ring-[#7a1620]"
+              className="w-full px-4 py-3 rounded-lg border border-[#e6d9b5] bg-white text-center text-xl sm:text-2xl tracking-[0.3em] sm:tracking-[0.5em] outline-none focus:border-[#7a1620] focus:ring-1 focus:ring-[#7a1620]"
               required
             />
           </div>

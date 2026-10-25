@@ -43,7 +43,7 @@ function Login() {
       style={{ backgroundImage: `url(${bg})` }}
     >
       {/* Card */}
-      <div className="w-full max-w-md bg-[#fdf8ec] rounded-2xl shadow-xl border border-[#e6d7b8] p-8">
+      <div className="w-full max-w-md bg-[#fdf8ec] rounded-2xl shadow-xl border border-[#e6d7b8] p-5 sm:p-8">
         {/* Brand */}
         <div className="flex items-center justify-center gap-2">
           <div className="h-10 w-10 rounded-full overflow-hidden shrink-0">
@@ -105,7 +105,7 @@ function Login() {
           </div>
 
           {/* Remember + Forgot */}
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
             <label className="flex items-center gap-2 text-[#3b2a20] cursor-pointer">
               <input
                 type="checkbox"
@@ -141,7 +141,7 @@ function Login() {
             onClick={handleInstituteLogin}
             className="w-full py-2.5 rounded-lg border border-[#7a1620] bg-white/70 text-[#7a1620] font-medium hover:bg-white transition flex items-center justify-center gap-2"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 10 12 4l9 6M5 10v8m4-8v8m6-8v8m4-8v8M3 20h18" />
             </svg>
             Continue with Institute Login

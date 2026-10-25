@@ -1,6 +1,7 @@
 ﻿import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import logo from '../assets/logo.png';
+import MobileNavToggle from '../components/MobileNavToggle';
 
 const DEFAULT_PETITIONS = [
   { id: '#NY-1048', category: 'Harassment & Safety', priority: 'High (Strict SLA 24h)', subject: 'Evening intimidation near Gate No. 2', status: 'In Review', time: '12 Oct, 10:30 AM' },
@@ -20,6 +21,7 @@ const FILTERS = ['All', 'Filed', 'Assigned', 'In Review', 'Resolved', 'Escalated
 
 const MyPetitions = () => {
   const [filter, setFilter] = useState('All');
+  const [navOpen, setNavOpen] = useState(false);
 
   const petitions = useMemo(() => {
     let saved = [];
@@ -34,8 +36,10 @@ const MyPetitions = () => {
   const visible = filter === 'All' ? petitions : petitions.filter(p => p.status === filter);
 
   return (
-    <div className="text-stone-800 flex h-screen w-screen overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      <aside className="w-64 h-screen bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0">
+    <div className="text-stone-800 flex h-dvh w-full overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      {navOpen && <div className="fixed inset-0 bg-black/40 z-20 md:hidden" onClick={() => setNavOpen(false)} />}
+
+      <aside className={`fixed md:static inset-y-0 left-0 z-30 w-64 bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 transform transition-transform duration-200 ${navOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         <div className="flex flex-col h-full">
           <Link to="/" className="h-16 flex items-center gap-2.5 px-6 border-b border-stone-200/80 shrink-0">
             <div className="w-8 h-8 rounded-full overflow-hidden shrink-0"><img src={logo} alt="NyayaStack" className="h-full w-full object-cover scale-[1.3]" /></div>
@@ -60,21 +64,27 @@ const MyPetitions = () => {
         </div>
       </aside>
 
-      <main className="flex-1 h-screen flex flex-col overflow-hidden bg-[#FAF7F2] w-full">
-        <header className="h-16 bg-white border-b border-stone-200/80 px-8 flex items-center justify-between shrink-0 shadow-sm w-full">
-          <div><h1 className="text-lg font-bold">My Petitions</h1><p className="text-xs text-stone-500">All grievances you have filed and their current status</p></div>
-          <Link to="/file-complaint" className="px-4 py-2 bg-[#6B1724] hover:bg-[#54121C] text-white rounded-xl text-xs font-semibold shadow transition flex items-center gap-1.5">
-            <i className="fa-solid fa-plus text-[10px]"></i> File New Petition
+      <main className="flex-1 min-w-0 h-full flex flex-col overflow-hidden bg-[#FAF7F2]">
+        <header className="h-16 bg-white border-b border-stone-200/80 px-4 md:px-8 flex items-center justify-between gap-2 shrink-0 shadow-sm w-full">
+          <div className="flex items-center min-w-0">
+            <MobileNavToggle onClick={() => setNavOpen(true)} />
+            <div className="min-w-0">
+              <h1 className="text-base md:text-lg font-bold">My Petitions</h1>
+              <p className="text-xs text-stone-500 hidden sm:block">All grievances you have filed and their current status</p>
+            </div>
+          </div>
+          <Link to="/file-complaint" className="px-3 sm:px-4 py-2 bg-[#6B1724] hover:bg-[#54121C] text-white rounded-xl text-xs font-semibold shadow transition flex items-center gap-1.5 shrink-0">
+            <i className="fa-solid fa-plus text-[10px]"></i> <span className="hidden sm:inline">File New Petition</span>
           </Link>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-5">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-5">
           <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
             {FILTERS.map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-4 py-2 rounded-lg transition ${filter === f ? 'bg-[#6B1724] text-white' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
+                className={`px-3 sm:px-4 py-2 rounded-lg transition ${filter === f ? 'bg-[#6B1724] text-white' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
               >
                 {f}
               </button>
@@ -83,7 +93,7 @@ const MyPetitions = () => {
 
           <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full min-w-[700px] text-left text-xs">
                 <thead className="bg-[#FAF5EE] border-b border-stone-200 text-stone-500 font-semibold uppercase text-[10px]">
                   <tr>
                     <th className="py-3.5 px-5">Petition ID</th>

@@ -65,7 +65,7 @@ function Register() {
       className="min-h-screen flex items-center justify-center px-4 py-8 bg-cover bg-center"
       style={{ backgroundImage: `url(${bg})` }}
     >
-      <div className="w-full max-w-md bg-[#fdf8ec] rounded-2xl border border-[#e6d9b5] shadow-xl p-8">
+      <div className="w-full max-w-md bg-[#fdf8ec] rounded-2xl border border-[#e6d9b5] shadow-xl p-5 sm:p-8">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-4">
           <img src={logo} alt="NyayaStack" className="h-10 w-10 object-contain" />

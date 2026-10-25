@@ -87,7 +87,7 @@ function AuthorityRegister() {
       className="min-h-screen flex items-center justify-center px-4 py-8 bg-cover bg-center"
       style={{ backgroundImage: `url(${bg})` }}
     >
-      <div className="w-full max-w-md bg-[#fdf8ec] rounded-2xl border border-[#e6d9b5] shadow-xl p-8">
+      <div className="w-full max-w-md bg-[#fdf8ec] rounded-2xl border border-[#e6d9b5] shadow-xl p-5 sm:p-8">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-3">
           <img src={logo} alt="NyayaStack" className="h-10 w-10 object-contain" />
@@ -117,7 +117,7 @@ function AuthorityRegister() {
               Aapka account admin verify karega. Approval milne ke baad aap login kar sakte hain.
             </p>
             <Link
-              to="/authority/login"
+              to="/authority-login"
               className="mt-6 inline-block w-full py-2.5 rounded-lg bg-[#7a1620] text-white font-semibold hover:bg-[#5e1019] transition"
             >
               Go to Authority Login
@@ -263,7 +263,7 @@ function AuthorityRegister() {
 
             <p className="mt-6 text-center text-sm text-gray-600">
               Already have an authority account?{" "}
-              <Link to="/authority/login" className="font-semibold text-[#7a1620]">
+              <Link to="/authority-login" className="font-semibold text-[#7a1620]">
                 Login
               </Link>
             </p>
@@ -281,4 +281,3 @@ function AuthorityRegister() {
 }
 
 export default AuthorityRegister;
-
