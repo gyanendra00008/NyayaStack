@@ -1,8 +1,19 @@
 import axios from 'axios';
 
+// Resolve API base URL strictly from environment variables
+const resolveBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '';
+  const cleanUrl = envUrl.trim().replace(/\/+$/, '');
+  if (!cleanUrl) {
+    console.warn('VITE_API_URL or VITE_API_BASE_URL is not defined in environment variables.');
+    return '';
+  }
+  return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
+};
+
 // Centralized Axios instance with environment-aware baseURL and credentials
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL: resolveBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
