@@ -1,6 +1,8 @@
 const crypto = require("crypto");
 const Complaint = require("../models/complaint.models.js");
+const { COMPLAINT_CATEGORIES } = require("../models/complaint.models.js");
 const cloudinaryService = require("../services/cloudinary.service.js");
+const mlService = require("../services/ml.service.js");
 
 /**
  * Generates a unique collision-resistant complaint identifier.
@@ -29,8 +31,24 @@ async function createComplaint(req, res, next) {
       });
     }
 
-    const { category, title, description } = req.body;
+    const { category, title, description, isAnonymous, autoCategorize } = req.body;
     const files = req.files || [];
+
+    // Automatically determine category using ML Service if requested or defaulted to 'Auto'
+    let resolvedCategory = category;
+    if (autoCategorize || resolvedCategory === "Auto") {
+      try {
+        const prediction = await mlService.predictCategory(title, description);
+        if (prediction && prediction.predicted_category) {
+          resolvedCategory = prediction.predicted_category;
+        } else {
+          resolvedCategory = "Other";
+        }
+      } catch (mlErr) {
+        console.warn("Auto-categorization fallback to 'Other':", mlErr.message);
+        resolvedCategory = "Other";
+      }
+    }
 
     // 1. Upload attachments to Cloudinary if files are present
     if (files.length > 0) {
@@ -55,11 +73,12 @@ async function createComplaint(req, res, next) {
         savedComplaint = await Complaint.create({
           complaintId,
           userId,
-          category,
+          category: resolvedCategory,
           title,
           description,
           attachments: uploadedAttachments,
           status: "Filed",
+          isAnonymous: Boolean(isAnonymous),
         });
 
         break; // Successfully saved
@@ -89,6 +108,7 @@ async function createComplaint(req, res, next) {
         title: savedComplaint.title,
         description: savedComplaint.description,
         status: savedComplaint.status,
+        isAnonymous: savedComplaint.isAnonymous,
         attachments: savedComplaint.attachments,
         createdAt: savedComplaint.createdAt,
         updatedAt: savedComplaint.updatedAt,
@@ -128,7 +148,7 @@ async function getMyComplaints(req, res, next) {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .select("complaintId category title description status attachments createdAt updatedAt -_id")
+        .select("complaintId category title description status isAnonymous attachments createdAt updatedAt -_id")
         .lean(),
     ]);
 
@@ -149,7 +169,108 @@ async function getMyComplaints(req, res, next) {
   }
 }
 
+/**
+ * Controller: POST /api/complaints/predict-category
+ * Obtains predicted problem category from the FastAPI ML service.
+ */
+async function predictComplaintCategory(req, res, next) {
+  try {
+    const { title, description } = req.body || {};
+
+    if (!title || !description) {
+      return res.status(400).json({
+        success: false,
+        message: "Both 'title' and 'description' are required for category prediction",
+      });
+    }
+
+    const prediction = await mlService.predictCategory(title, description);
+
+    return res.status(200).json({
+      success: true,
+      data: prediction,
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+        details: error.details,
+      });
+    }
+    next(error);
+  }
+}
+
+/**
+ * Controller: GET /api/complaints/categories
+ * Returns the authoritative list of supported grievance categories.
+ */
+async function getCategories(req, res) {
+  return res.status(200).json({
+    success: true,
+    data: COMPLAINT_CATEGORIES,
+  });
+}
+
+/**
+ * Controller: GET /api/complaints/:complaintId
+ * Retrieves a single complaint by complaint identifier with access control.
+ */
+async function getComplaintById(req, res, next) {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const userRole = req.user?.role;
+    const { complaintId } = req.params;
+
+    if (!complaintId) {
+      return res.status(400).json({
+        success: false,
+        message: "Complaint identifier is required",
+      });
+    }
+
+    const complaint = await Complaint.findOne({ complaintId })
+      .select("complaintId userId category title description status isAnonymous attachments createdAt updatedAt -_id")
+      .lean();
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: `Complaint with ID '${complaintId}' was not found`,
+      });
+    }
+
+    // Access control: User can only view their own complaint unless they are an officer or admin
+    if (
+      complaint.userId &&
+      complaint.userId.toString() !== userId?.toString() &&
+      userRole !== "admin" &&
+      userRole !== "officer"
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to view this complaint",
+      });
+    }
+
+    // Sanitize response so userId is not leaked
+    const sanitizedComplaint = { ...complaint };
+    delete sanitizedComplaint.userId;
+
+    return res.status(200).json({
+      success: true,
+      data: sanitizedComplaint,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   createComplaint,
   getMyComplaints,
+  predictComplaintCategory,
+  getCategories,
+  getComplaintById,
 };

@@ -1,5 +1,6 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { authApi } from "../services/api";
 import bg from "../assets/2ndbg.png";
 import logo from "../assets/logo.png";
 
@@ -56,23 +57,17 @@ function AuthorityRegister() {
 
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:3000/auth/authority/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          employeeId: form.employeeId,
-          department: form.department,
-          designation: form.designation,
-          password: form.password,
-        }),
+      await authApi.registerAuthority({
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        employeeId: form.employeeId.trim(),
+        department: form.department,
+        designation: form.designation,
+        password: form.password,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Registration failed");
       setSubmitted(true);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message || "Registration failed. Please check your details.");
     } finally {
       setLoading(false);
     }

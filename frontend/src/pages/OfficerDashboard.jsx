@@ -1,7 +1,39 @@
-﻿import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { logout } from "../store/slices/authSlice";
+import ChangePasswordModal from "../components/ChangePasswordModal";
 
 export default function OfficerDashboard() {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const [showChangePassword, setShowChangePassword] = useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("authorityToken");
+    sessionStorage.removeItem("authorityToken");
+    localStorage.removeItem("nyaya_logged_user");
+    localStorage.removeItem("nyaya_user_name");
+    localStorage.removeItem("nyaya_user_role");
+    sessionStorage.clear();
+    dispatch(logout());
+    navigate("/authority/login");
+  };
+
+  const rawName = localStorage.getItem("nyaya_user_name") || "Authority Officer";
+  const officerName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+  const officerRole =
+    localStorage.getItem("nyaya_user_role") === "admin"
+      ? "System Administrator"
+      : "Grievance Redressal Officer";
+  const officerInitials = officerName
+    .split(/[\s_.-]+/)
+    .map((part) => part[0])
+    .filter(Boolean)
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "AO";
   return (
     <div className="text-stone-800 flex h-screen w-screen overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
 
@@ -36,15 +68,21 @@ export default function OfficerDashboard() {
         </div>
         <div className="p-4 border-t border-stone-200/80 flex items-center justify-between bg-[#F0E8DC]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-[#6B1724] text-white flex items-center justify-center font-bold text-xs shadow-sm">RV</div>
+            <div className="w-8 h-8 rounded-full bg-[#6B1724] text-white flex items-center justify-center font-bold text-xs shadow-sm">
+              {officerInitials}
+            </div>
             <div>
-              <p className="text-xs font-bold text-stone-800">Dr. Rajesh Varma</p>
-              <p className="text-[10px] text-stone-500 font-mono">Grievance Officer</p>
+              <p className="text-xs font-bold text-stone-800">{officerName}</p>
+              <p className="text-[10px] text-stone-500 font-mono">{officerRole}</p>
             </div>
           </div>
-          <Link to="/login" title="Logout" className="text-stone-400 hover:text-[#6B1724] p-1.5 transition">
+          <button
+            onClick={handleLogout}
+            title="Logout"
+            className="text-stone-400 hover:text-[#6B1724] p-1.5 transition"
+          >
             <i className="fa-solid fa-arrow-right-from-bracket text-xs"></i>
-          </Link>
+          </button>
         </div>
       </aside>
 
@@ -55,10 +93,23 @@ export default function OfficerDashboard() {
             <h1 className="text-lg font-bold text-stone-800">Officer Redressal Console</h1>
             <p className="text-xs text-stone-500">Real-Time Grievance Workqueue with AI Semantic Clustering</p>
           </div>
-          <span className="text-xs font-semibold px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> SLA Active Oversight
-          </span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowChangePassword(true)}
+              className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-semibold shadow-xs transition flex items-center gap-1.5"
+            >
+              <i className="fa-solid fa-key text-[10px] text-[#7a1620]"></i> Change Password
+            </button>
+            <span className="text-xs font-semibold px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> SLA Active Oversight
+            </span>
+          </div>
         </header>
+
+        <ChangePasswordModal
+          isOpen={showChangePassword}
+          onClose={() => setShowChangePassword(false)}
+        />
 
         <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

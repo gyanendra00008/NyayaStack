@@ -22,6 +22,19 @@ CURRENT_DIR = Path(__file__).resolve().parent
 if str(CURRENT_DIR) not in sys.path:
     sys.path.insert(0, str(CURRENT_DIR))
 
+# Load .env file if present in service directory
+env_file = CURRENT_DIR / ".env"
+if env_file.is_file():
+    try:
+        with open(env_file, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, val = line.split("=", 1)
+                    os.environ.setdefault(key.strip(), val.strip().strip("'\""))
+    except Exception:
+        pass
+
 try:
     from model import ModelNotLoadedError, model_manager
     from schemas import (

@@ -1,7 +1,13 @@
-﻿import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import anonymousAvatar from '../assets/anonymous-avatar.svg';
+import { complaintApi } from '../services/api';
 
 const PetitionDetails = () => {
+  const [searchParams] = useSearchParams();
+  const queryId = searchParams.get('id') || '#NY-1048';
+
+  const [complaintData, setComplaintData] = useState(null);
   const [slaSeconds, setSlaSeconds] = useState(5025);
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState([
@@ -20,6 +26,35 @@ const PetitionDetails = () => {
     }
   ]);
   const chatStreamRef = useRef(null);
+
+  useEffect(() => {
+    if (queryId) {
+      complaintApi.getComplaintById(queryId)
+        .then((res) => {
+          if (res.data?.data) {
+            setComplaintData(res.data.data);
+          }
+        })
+        .catch(() => {
+          // Check local storage fallback
+          try {
+            const list = JSON.parse(localStorage.getItem('nyaya_user_petitions') || '[]');
+            const found = list.find((p) => p.id === queryId || p.complaintId === queryId);
+            if (found) {
+              setComplaintData({
+                complaintId: found.id || found.complaintId,
+                title: found.subject || found.title,
+                category: found.category,
+                description: found.desc || found.description,
+                status: found.status || 'Filed',
+                attachments: found.attachments || [],
+                createdAt: found.time || new Date().toISOString(),
+              });
+            }
+          } catch (e) {}
+        });
+    }
+  }, [queryId]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -138,7 +173,7 @@ const PetitionDetails = () => {
 
         <div className="p-4 border-t border-stone-200/80 flex items-center justify-between bg-[#F0E8DC]">
           <div className="flex items-center gap-2.5">
-            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-[#6B1724]" />
+            <img src={anonymousAvatar} alt="Unknown Identity" className="w-8 h-8 rounded-full object-cover border border-[#6B1724]" />
             <div>
               <p className="text-xs font-bold text-stone-800">User</p>
               <p className="text-[10px] text-stone-500 font-mono">Enter here</p>
@@ -160,10 +195,21 @@ const PetitionDetails = () => {
             </Link>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold text-stone-800 font-mono">Petition #NY-1048</h1>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800">High Priority</span>
+                <h1 className="text-base font-bold text-stone-800 font-mono">
+                  {complaintData?.complaintId || queryId}
+                </h1>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800">
+                  {complaintData?.status || 'Active SLA'}
+                </span>
+                {complaintData?.isAnonymous && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-stone-200 text-stone-700 flex items-center gap-1">
+                    <i className="fa-solid fa-user-secret"></i> Anonymous Docket
+                  </span>
+                )}
               </div>
-              <p className="text-[11px] text-stone-400">Assigned to Internal Complaints Committee (ICC) • SLA Monitored</p>
+              <p className="text-[11px] text-stone-400">
+                {complaintData?.title || 'Assigned to Redressal Committee • SLA Monitored'}
+              </p>
             </div>
           </div>
           <Link to="/ledger" className="px-3.5 py-1.5 bg-[#FAF5EE] hover:bg-stone-100 border border-stone-300 rounded-xl text-xs font-semibold text-[#6B1724] transition flex items-center gap-1.5 shadow-sm">
@@ -177,28 +223,51 @@ const PetitionDetails = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             <div className="lg:col-span-8 bg-white p-6 rounded-2xl border border-stone-200/80 shadow-sm space-y-3.5 text-xs">
               <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
-                <h2 className="font-bold text-stone-800 text-sm">Complaint Details</h2>
+                <h2 className="font-bold text-stone-800 text-sm">
+                  {complaintData?.title ? complaintData.title : 'Complaint Details'}
+                </h2>
                 <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 font-semibold"><i className="fa-solid fa-shield"></i> Merkle Verified</span>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <div><span className="text-stone-400 block text-[10px]">Category:</span><span className="font-bold text-stone-800">Harassment & Safety</span></div>
-                <div><span className="text-stone-400 block text-[10px]">Filed On:</span><span className="font-bold text-stone-800">12 Oct 2026, 10:30 AM</span></div>
-                <div><span className="text-stone-400 block text-[10px]">Anonymous:</span><span className="font-bold text-emerald-700">Yes (Concealed)</span></div>
+                <div>
+                  <span className="text-stone-400 block text-[10px]">Category:</span>
+                  <span className="font-bold text-stone-800">{complaintData?.category || 'Harassment & Safety'}</span>
+                </div>
+                <div>
+                  <span className="text-stone-400 block text-[10px]">Filed On:</span>
+                  <span className="font-bold text-stone-800">
+                    {complaintData?.createdAt ? new Date(complaintData.createdAt).toLocaleDateString() : '12 Oct 2026, 10:30 AM'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-stone-400 block text-[10px]">Status:</span>
+                  <span className="font-bold text-emerald-700">{complaintData?.status || 'Filed'}</span>
+                </div>
               </div>
               <div>
                 <span className="text-stone-400 block text-[10px] mb-1">Description:</span>
-                <p className="bg-[#FAF5EE] p-3.5 rounded-xl border border-stone-200 text-stone-700 leading-relaxed">
-                  Enter the description of the problem here.
+                <p className="bg-[#FAF5EE] p-3.5 rounded-xl border border-stone-200 text-stone-700 leading-relaxed whitespace-pre-wrap">
+                  {complaintData?.description || 'Enter the description of the problem here.'}
                 </p>
               </div>
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex flex-wrap items-center gap-2 pt-1">
                 <span className="text-stone-400 text-[10px]">Attachments:</span>
-                <span onClick={() => alert('Viewing attachment proof1.pdf (Verified SHA-256 Checksum)')} className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 rounded-lg text-[11px] font-mono border border-stone-200 flex items-center gap-1 cursor-pointer transition">
-                  <i className="fa-solid fa-file-pdf text-rose-600"></i> proof1.pdf
-                </span>
-                <span onClick={() => alert('Viewing attachment gate2_photo.png')} className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 rounded-lg text-[11px] font-mono border border-stone-200 flex items-center gap-1 cursor-pointer transition">
-                  <i className="fa-solid fa-image text-indigo-600"></i> gate2_photo.png
-                </span>
+                {complaintData?.attachments && complaintData.attachments.length > 0 ? (
+                  complaintData.attachments.map((att, idx) => (
+                    <a
+                      key={idx}
+                      href={att.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 rounded-lg text-[11px] font-mono border border-stone-200 flex items-center gap-1 transition text-stone-800"
+                    >
+                      <i className="fa-solid fa-paperclip text-[#6B1724]"></i>
+                      <span>{att.originalName || `Attachment-${idx+1}`}</span>
+                    </a>
+                  ))
+                ) : (
+                  <span className="text-stone-400 italic text-[11px]">No external attachments</span>
+                )}
               </div>
             </div>
 

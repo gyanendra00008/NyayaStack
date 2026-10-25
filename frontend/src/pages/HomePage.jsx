@@ -1,4 +1,4 @@
-﻿import { Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import bg from '../assets/bg.jpeg'
 import logo from '../assets/logo.png'
 
@@ -78,13 +78,13 @@ function Home() {
 
           <div className="mt-8 flex flex-wrap justify-center gap-4">
             <Link
-              to="/register"
+              to="/file-complaint"
               className="px-6 py-3 rounded-md bg-[#7a1620] text-white font-semibold hover:bg-[#5e1018] transition"
             >
               File a Complaint
             </Link>
             <Link
-              to="/dashboard"
+              to="/publictrans"
               className="px-6 py-3 rounded-md border border-[#7a1620] bg-white/70 text-[#7a1620] font-semibold hover:bg-white transition"
             >
               View Public Dashboard

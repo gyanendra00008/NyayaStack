@@ -767,4 +767,51 @@ describe("NyayaStack Authentication & Security Test Suite", () => {
     assert.equal(dataAdmin.role, "admin");
     assert.equal(dataAdmin.success, true);
   });
+
+  // 24. Registration persists fullName and rollNo in UserModel and allows login via rollNo
+  it("24. Registration persists fullName and rollNo in UserModel and allows login via rollNo", async () => {
+    const timestamp = Date.now();
+    const rollNo = `22BCS${Math.floor(100 + Math.random() * 900)}`;
+    const fullName = "Aarav Sharma";
+    const password = "ValidPassword123!";
+    const email = `student_${timestamp}@nyayastack-test.com`;
+    const username = `student_${timestamp}`;
+
+    const regRes = await fetch(`${baseUrl}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username,
+        email,
+        password,
+        fullName,
+        rollNo,
+      }),
+    });
+    assert.equal(regRes.status, 201);
+
+    // Verify stored in DB
+    const savedUser = await UserModel.findOne({ email });
+    assert.ok(savedUser);
+    assert.equal(savedUser.fullName, fullName);
+    assert.equal(savedUser.rollNo, rollNo);
+
+    // Verify user and test login via rollNo
+    savedUser.isVerified = true;
+    await savedUser.save();
+
+    const loginRes = await fetch(`${baseUrl}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        identifier: rollNo, // Log in using rollNo
+        password,
+      }),
+    });
+    assert.equal(loginRes.status, 200);
+    const loginData = await loginRes.json();
+    assert.equal(loginData.success, true);
+    assert.equal(loginData.user.fullName, fullName);
+    assert.equal(loginData.user.rollNo, rollNo);
+  });
 });

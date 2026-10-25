@@ -22,7 +22,7 @@ const getStorageConnection = () => {
   const storageUri =
     process.env.NODE_ENV === 'test' && process.env.TEST_STORAGE_MONGO_URI
       ? process.env.TEST_STORAGE_MONGO_URI
-      : process.env.STORAGE_MONGO_URI;
+      : process.env.STORAGE_MONGO_URI || process.env.STORAGE_MONGODB_URI;
 
   if (!storageUri) {
     throw new Error('STORAGE_MONGO_URI environment variable is missing.');
@@ -46,10 +46,15 @@ const getStorageConnection = () => {
  */
 const connectDB = async () => {
   try {
-    if (!process.env.MONGO_URI) {
+    const mongoUri =
+      process.env.NODE_ENV === 'test' && process.env.TEST_MONGO_URI
+        ? process.env.TEST_MONGO_URI
+        : process.env.MONGO_URI || process.env.MONGODB_URI;
+
+    if (!mongoUri) {
       throw new Error('MONGO_URI environment variable is missing.');
     }
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(mongoUri);
     console.log('Database connected successfully');
   } catch (error) {
     console.error(`Database connection error: ${sanitizeErrorMessage(error.message)}`);
