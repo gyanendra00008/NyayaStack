@@ -30,6 +30,8 @@ function AuthorityLogin() {
   const [error, setError] = useState(
     location.state?.roleMismatch
       ? 'Authority or Administrator credentials are required to access this portal.'
+      : location.state?.notApproved
+      ? 'Your authority registration is awaiting administrator verification. Access is restricted until approved.'
       : ''
   )
   const [loading, setLoading] = useState(false)
@@ -37,8 +39,13 @@ function AuthorityLogin() {
   useEffect(() => {
     const token = localStorage.getItem('authorityToken') || localStorage.getItem('token')
     const role = localStorage.getItem('nyaya_user_role')
-    if (token && (role === 'officer' || role === 'admin')) {
-      navigate('/officerdash', { replace: true })
+    const status = localStorage.getItem('nyaya_verification_status')
+    if (token) {
+      if (role === 'admin') {
+        navigate('/admin/dashboard', { replace: true })
+      } else if (role === 'officer' && (!status || status === 'approved')) {
+        navigate('/officerdash', { replace: true })
+      }
     }
   }, [navigate])
 
@@ -57,20 +64,34 @@ function AuthorityLogin() {
         return
       }
 
+      // Verification check: Only approved officers (or administrators) can proceed
+      if (user?.role === 'officer' && user.verificationStatus !== 'approved') {
+        const rejectionMsg = user.rejectionReason
+          ? `Your authority registration was rejected by the administrator. Reason: ${user.rejectionReason}`
+          : 'Your authority registration was rejected by the administrator.'
+        const pendingMsg = 'Your authority account is awaiting administrator review and approval. Access will be enabled once verified.'
+        setError(user.verificationStatus === 'rejected' ? rejectionMsg : pendingMsg)
+        return
+      }
+
       const storage = remember ? localStorage : sessionStorage
       storage.setItem('authorityToken', token)
       localStorage.setItem('token', token)
       if (user?.username) {
         localStorage.setItem('nyaya_logged_user', user.username)
-        localStorage.setItem('nyaya_user_name', user.username)
+        localStorage.setItem('nyaya_user_name', user.fullName || user.username)
       }
       if (user?.role) {
         localStorage.setItem('nyaya_user_role', user.role)
       }
+      if (user?.verificationStatus) {
+        localStorage.setItem('nyaya_verification_status', user.verificationStatus)
+      }
 
       dispatch(setCredentials({ user, token }))
 
-      const from = location.state?.from?.pathname || '/officerdash'
+      const fallbackRoute = user?.role === 'admin' ? '/admin/dashboard' : '/officerdash'
+      const from = location.state?.from?.pathname || fallbackRoute
       navigate(from, { replace: true })
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Login failed. Please check your credentials.')

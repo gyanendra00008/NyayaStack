@@ -50,6 +50,11 @@ export default function OfficerDashboard() {
             <Link to="/officerdash" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#6B1724] text-white shadow-sm">
               <i className="fa-solid fa-gauge-high w-4"></i> Officer Console
             </Link>
+            {localStorage.getItem("nyaya_user_role") === "admin" && (
+              <Link to="/admin/dashboard" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-amber-900 bg-amber-100/60 hover:bg-amber-100 transition">
+                <i className="fa-solid fa-shield-halved w-4 text-amber-700"></i> Admin Console
+              </Link>
+            )}
             <Link to="/my-petitions" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
               <i className="fa-solid fa-list-check w-4"></i> Assigned Petitions
             </Link>

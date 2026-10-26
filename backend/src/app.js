@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const healthRoutes = require('./routes/health.routes.js');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler.js');
 const authRoutes = require('./routes/auth.routes.js');
+const adminRoutes = require('./routes/admin.routes.js');
 const complaintRoutes = require('./routes/complaint.routes.js');
 const { generalLimiter } = require('./middleware/rateLimit.middleware.js');
 
@@ -46,6 +47,8 @@ app.use(generalLimiter);
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/auth', authRoutes); // alias for backwards compatibility
+app.use('/api/admin', adminRoutes);
+app.use('/admin', adminRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/petitions', complaintRoutes);
 

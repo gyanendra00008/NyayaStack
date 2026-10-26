@@ -36,6 +36,17 @@ export default function ProtectedRoute({ children, roleRequired = null, redirect
     if (!userRole || (userRole !== roleRequired && userRole !== 'admin')) {
       return <Navigate to={redirectTo} state={{ from: location, roleMismatch: true }} replace />;
     }
+
+    // If role required is officer and user is an officer, verify account approval
+    if (userRole === 'officer') {
+      const verificationStatus =
+        reduxUser?.verificationStatus ||
+        localStorage.getItem('nyaya_verification_status');
+
+      if (verificationStatus && verificationStatus !== 'approved') {
+        return <Navigate to="/authority/login" state={{ from: location, notApproved: true }} replace />;
+      }
+    }
   }
 
   return children;

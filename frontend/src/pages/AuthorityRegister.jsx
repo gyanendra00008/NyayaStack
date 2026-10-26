@@ -4,26 +4,66 @@ import { authApi } from "../services/api";
 import bg from "../assets/2ndbg.png";
 import logo from "../assets/logo.png";
 
-const DEPARTMENTS = [
-  "Academic Affairs",
-  "Hostel & Mess",
-  "Examination Cell",
-  "Anti-Ragging Committee",
-  "Internal Complaints Committee",
-  "Library",
-  "IT & Infrastructure",
-  "Administration",
-];
+export const DEPARTMENT_DESIGNATIONS = {
+  "Academic Affairs": [
+    "Dean (Academic Affairs)",
+    "Head of Department (HOD)",
+    "Faculty Coordinator",
+    "Academic Counselor",
+    "Program Coordinator",
+  ],
+  "Hostel & Mess": [
+    "Chief Warden",
+    "Warden",
+    "Assistant Warden",
+    "Hostel Supervisor",
+    "Mess Committee In-Charge",
+    "Caretaker",
+  ],
+  "Examination Cell": [
+    "Controller of Examinations (COE)",
+    "Assistant Controller of Examinations",
+    "Examination Superintendent",
+    "Evaluation Coordinator",
+    "Administrative Officer",
+  ],
+  "Anti-Ragging Committee": [
+    "Committee Chairperson",
+    "Committee Member",
+    "Squad In-Charge",
+    "Faculty Representative",
+  ],
+  "Internal Complaints Committee": [
+    "Presiding Officer",
+    "Committee Member",
+    "Legal Advisor",
+    "Faculty Representative",
+    "Counselor",
+  ],
+  "Library": [
+    "Chief Librarian",
+    "Assistant Librarian",
+    "Information Officer",
+    "Library Assistant",
+  ],
+  "IT & Infrastructure": [
+    "IT Head / CTO",
+    "System Administrator",
+    "Network Engineer",
+    "Estate / Works Officer",
+    "Maintenance Supervisor",
+  ],
+  "Administration": [
+    "Registrar",
+    "Deputy Registrar",
+    "Assistant Registrar",
+    "Administrative Officer",
+    "Section Officer",
+    "Grievance Redressal Officer",
+  ],
+};
 
-const DESIGNATIONS = [
-  "Warden",
-  "Faculty Coordinator",
-  "Head of Department",
-  "Registrar",
-  "Dean",
-  "Committee Member",
-  "Administrative Officer",
-];
+const DEPARTMENTS = Object.keys(DEPARTMENT_DESIGNATIONS);
 
 function AuthorityRegister() {
   const [showPassword, setShowPassword] = useState(false);
@@ -41,8 +81,23 @@ function AuthorityRegister() {
   });
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === "department") {
+      setForm((prev) => ({
+        ...prev,
+        department: value,
+        designation: DEPARTMENT_DESIGNATIONS[value]?.includes(prev.designation)
+          ? prev.designation
+          : "",
+      }));
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }));
+    }
   };
+
+  const availableDesignations = form.department
+    ? DEPARTMENT_DESIGNATIONS[form.department] || []
+    : [];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -102,18 +157,24 @@ function AuthorityRegister() {
         {submitted ? (
           /* Success state */
           <div className="text-center py-4">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-50 border border-green-200">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 border border-amber-200">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-[#2b2118]">Request submitted</h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Aapka account admin verify karega. Approval milne ke baad aap login kar sakte hain.
-            </p>
+            <h2 className="text-2xl font-bold text-[#2b2118]">Application Submitted</h2>
+            <div className="mt-2 text-sm text-gray-600 space-y-1">
+              <p className="font-semibold text-amber-800">Status: Pending Verification</p>
+              <p>
+                Your registration has been submitted and is currently awaiting manual review and approval by an institutional administrator.
+              </p>
+              <p className="text-xs text-stone-500 pt-1">
+                You will be able to access the Authority Console once your credentials have been verified and approved.
+              </p>
+            </div>
             <Link
               to="/authority/login"
-              className="mt-6 inline-block w-full py-2.5 rounded-lg bg-[#7a1620] text-white font-semibold hover:bg-[#5e1019] transition"
+              className="mt-6 inline-block w-full py-2.5 rounded-lg bg-[#7a1620] text-white font-semibold hover:bg-[#5e1019] transition shadow-xs"
             >
               Go to Authority Login
             </Link>
@@ -188,17 +249,22 @@ function AuthorityRegister() {
               </div>
 
               <div>
-                <label htmlFor="designation" className={labelClass}>Designation</label>
+                <label htmlFor="designation" className={labelClass}>
+                  Designation {form.department && <span className="text-xs font-normal text-stone-500">({form.department})</span>}
+                </label>
                 <select
                   id="designation"
                   name="designation"
                   value={form.designation}
                   onChange={handleChange}
-                  className={inputClass}
+                  className={`${inputClass} ${!form.department ? "bg-stone-50 text-stone-400 cursor-not-allowed" : ""}`}
                   required
+                  disabled={!form.department}
                 >
-                  <option value="" disabled>Select designation</option>
-                  {DESIGNATIONS.map((d) => (
+                  <option value="" disabled>
+                    {form.department ? "Select designation" : "Please select department first"}
+                  </option>
+                  {availableDesignations.map((d) => (
                     <option key={d} value={d}>{d}</option>
                   ))}
                 </select>

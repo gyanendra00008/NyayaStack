@@ -209,7 +209,31 @@ async function isUser(req, res, next) {
       });
     }
 
-    // Reject unverified users
+    // Check authority verification status before regular verification
+    if (user.role === "officer") {
+      if (user.verificationStatus === "pending") {
+        return res.status(403).json({
+          success: false,
+          message: "Your authority registration is pending administrator verification. Please wait for approval.",
+        });
+      }
+      if (user.verificationStatus === "rejected") {
+        return res.status(403).json({
+          success: false,
+          message: user.rejectionReason
+            ? `Your authority registration was rejected by the administrator. Reason: ${user.rejectionReason}`
+            : "Your authority registration was rejected by the administrator.",
+        });
+      }
+      if (user.verificationStatus !== "approved") {
+        return res.status(403).json({
+          success: false,
+          message: "Your authority registration is pending administrator verification. Please wait for approval.",
+        });
+      }
+    }
+
+    // Reject unverified users (e.g. students who have not verified email OTP)
     if (!user.isVerified) {
       return res.status(403).json({
         success: false,
@@ -464,6 +488,14 @@ function authorizeRoles(...allowedRoles) {
       return res.status(403).json({
         success: false,
         message: "Forbidden: You do not have permission to access this resource",
+      });
+    }
+
+    // If an officer is accessing, verify that their account has been approved by admin
+    if (req.user.role === "officer" && req.user.verificationStatus !== "approved") {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden: Authority account is not approved by administrator",
       });
     }
 
