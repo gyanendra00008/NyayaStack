@@ -4,6 +4,72 @@ import logo from '../assets/logo.png';
 import anonymousAvatar from '../assets/anonymous-avatar.svg';
 import { complaintApi, DEFAULT_CATEGORIES } from '../services/api';
 
+/**
+ * Client-side smart keyword matcher fallback.
+ * Automatically predicts the grievance category when typing or if backend ML is warming up.
+ */
+const guessCategoryFromText = (text) => {
+  if (!text || typeof text !== 'string') return null;
+  const normalized = text.toLowerCase();
+
+  // 1. Ragging (highest urgency, checked first)
+  if (/\b(ragging|ragged|hazing|forced by senior|seniors harassing|senior torture|seniors ragging)\b/i.test(normalized)) {
+    return 'Ragging';
+  }
+
+  // 2. Harassment & Safety
+  if (/\b(harass|harassment|stalking|stalk|indecent|molest|molestation|verbal abuse|threat|blackmail|misbehavior|discrimination|casteism|safety)\b/i.test(normalized)) {
+    return 'Harassment';
+  }
+
+  // 3. Mess & Canteen
+  if (/\b(mess|food|canteen|breakfast|lunch|dinner|meal|roti|sabzi|daal|rice|caterer|tasteless|hygiene in food|uncooked|diet|dining hall|insect in food|caterpillar)\b/i.test(normalized)) {
+    return 'Mess';
+  }
+
+  // 4. Hostel living conditions
+  if (/\b(hostel|room|geyser|bathroom|washroom|toilet|bed|mattress|bedbug|bedbugs|almirah|warden|curfew|block [a-z0-9]|wing [a-z0-9]|tap|flush|shower|corridor|water cooler)\b/i.test(normalized)) {
+    return 'Hostel';
+  }
+
+  // 5. Academic & Examinations
+  if (/\b(academic|exam|exams|grade|marks|professor|syllabus|teacher|faculty|attendance|lecture|assignment|lab|timetable|credits|results|course|registration|midsem|endsem|backlog|revaluation|practical)\b/i.test(normalized)) {
+    return 'Academic';
+  }
+
+  // 6. Finance & Accounts
+  if (/\b(fee|fees|fine|challan|refund|scholarship|receipt|payment|deposit|bank|stipend|accounts|account|overcharge|transaction)\b/i.test(normalized)) {
+    return 'Finance';
+  }
+
+  // 7. Transport & Commute
+  if (/\b(bus|shuttle|transport|vehicle|auto|driver|parking|e-rickshaw|route|cab)\b/i.test(normalized)) {
+    return 'Transport';
+  }
+
+  // 8. Medical & Health
+  if (/\b(doctor|hospital|dispensary|medicine|ambulance|nurse|clinic|first aid|sick|illness|fever|health|medical)\b/i.test(normalized)) {
+    return 'Medical';
+  }
+
+  // 9. Administration & Office Services
+  if (/\b(admin|administration|registrar|office|staff|id card|bonafide|certificate|documents|clearance|gate pass|security guard|authority)\b/i.test(normalized)) {
+    return 'Administration';
+  }
+
+  // 10. Infrastructure & Campus Maintenance
+  if (/\b(wifi|wi-fi|internet|network|road|lift|elevator|building|leakage|classroom|bench|projector|air conditioner|ac|streetlight|auditorium|electricity|power cut|water supply|pipe|light|fan|tubelight)\b/i.test(normalized)) {
+    return 'Infrastructure';
+  }
+
+  // 11. Discipline & Campus Order
+  if (/\b(discipline|fight|dispute|violence|alcohol|smoking|drugs|brawl|disturbance|misconduct)\b/i.test(normalized)) {
+    return 'Discipline';
+  }
+
+  return null;
+};
+
 const FileComplaint = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
@@ -102,21 +168,28 @@ const FileComplaint = () => {
     setFormData(prev => ({ ...prev, category: val }));
   };
 
-  // Automatic category classification via ML service as user types
+  // Automatic category classification via ML service as user types problem title/description
   useEffect(() => {
     const trimmedTitle = formData.subject.trim();
     const trimmedDesc = formData.desc.trim();
 
     if (isManualCategory) return;
-    if (trimmedTitle.length < 3 || trimmedDesc.length < 10) return;
+    // Trigger auto-fetch as soon as user types problem title (subject >= 3 chars)
+    if (trimmedTitle.length < 3) return;
 
     const timer = setTimeout(async () => {
       setMlLoading(true);
       setMlError('');
+
+      const effectiveDesc =
+        trimmedDesc.length >= 10
+          ? trimmedDesc
+          : (trimmedTitle.length >= 10 ? trimmedTitle : `${trimmedTitle} grievance reported`);
+
       try {
         const res = await complaintApi.predictCategory({
           title: trimmedTitle,
-          description: trimmedDesc,
+          description: effectiveDesc,
         });
         const data = res.data?.data;
         if (data && data.predicted_category) {
@@ -125,31 +198,47 @@ const FileComplaint = () => {
           setMlStale(false);
         }
       } catch (err) {
-        // Non-blocking auto prediction
+        // Fallback to client-side smart matching if server returns error or ML is warming up
+        const fallbackCat = guessCategoryFromText(trimmedTitle + ' ' + trimmedDesc);
+        if (fallbackCat) {
+          setFormData((prev) => ({ ...prev, category: fallbackCat }));
+          setMlSuggestion({
+            predicted_category: fallbackCat,
+            confidence: 0.7,
+            needs_review: true,
+            is_fallback: true,
+            message: 'Auto-detected via smart matching',
+          });
+          setMlStale(false);
+        }
       } finally {
         setMlLoading(false);
       }
-    }, 700);
+    }, 600);
 
     return () => clearTimeout(timer);
   }, [formData.subject, formData.desc, isManualCategory]);
 
   const handleSuggestCategory = async () => {
     setMlError('');
-    if (!formData.subject.trim() || formData.subject.trim().length < 3) {
-      setMlError('Please enter a subject (at least 3 characters) before requesting AI categorization.');
+    const trimmedTitle = formData.subject.trim();
+    const trimmedDesc = formData.desc.trim();
+
+    if (!trimmedTitle || trimmedTitle.length < 3) {
+      setMlError('Please enter a subject / problem title (at least 3 characters) before requesting AI categorization.');
       return;
     }
-    if (!formData.desc.trim() || formData.desc.trim().length < 10) {
-      setMlError('Please enter a description (at least 10 characters) before requesting AI categorization.');
-      return;
-    }
+
+    const effectiveDesc =
+      trimmedDesc.length >= 10
+        ? trimmedDesc
+        : (trimmedTitle.length >= 10 ? trimmedTitle : `${trimmedTitle} grievance reported`);
 
     setMlLoading(true);
     try {
       const res = await complaintApi.predictCategory({
-        title: formData.subject.trim(),
-        description: formData.desc.trim(),
+        title: trimmedTitle,
+        description: effectiveDesc,
       });
 
       const data = res.data?.data;
@@ -159,8 +248,21 @@ const FileComplaint = () => {
         setMlStale(false);
       }
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'AI suggestion service is currently unavailable.';
-      setMlError(msg);
+      const fallbackCat = guessCategoryFromText(trimmedTitle + ' ' + trimmedDesc);
+      if (fallbackCat) {
+        setFormData(prev => ({ ...prev, category: fallbackCat }));
+        setMlSuggestion({
+          predicted_category: fallbackCat,
+          confidence: 0.7,
+          needs_review: true,
+          is_fallback: true,
+          message: 'Suggested via smart matching',
+        });
+        setMlStale(false);
+      } else {
+        const msg = err.response?.data?.message || err.message || 'AI suggestion service is currently unavailable.';
+        setMlError(msg);
+      }
     } finally {
       setMlLoading(false);
     }
@@ -356,13 +458,17 @@ const FileComplaint = () => {
                       <i className={`fa-solid ${mlSuggestion.needs_review ? 'fa-triangle-exclamation text-amber-600' : 'fa-circle-check text-emerald-600'}`}></i>
                       <span>
                         AI Predicted Category: <strong>{mlSuggestion.predicted_category}</strong>{' '}
-                        ({Math.round((mlSuggestion.confidence || 0) * 100)}% confidence)
+                        {mlSuggestion.confidence ? `(${Math.round((mlSuggestion.confidence || 0) * 100)}% confidence)` : ''}
                       </span>
-                      {mlSuggestion.needs_review && (
+                      {mlSuggestion.is_fallback ? (
+                        <span className="text-[10px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded font-semibold">
+                          Smart Match
+                        </span>
+                      ) : mlSuggestion.needs_review ? (
                         <span className="text-[10px] bg-amber-200/60 px-2 py-0.5 rounded font-semibold text-amber-800">
                           Review Recommended
                         </span>
-                      )}
+                      ) : null}
                     </div>
                     {mlStale && (
                       <span className="text-[11px] text-stone-500 italic">

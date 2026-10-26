@@ -1,6 +1,78 @@
 const { COMPLAINT_CATEGORIES } = require("../models/complaint.models.js");
 
-const DEFAULT_TIMEOUT_MS = 5000;
+const DEFAULT_TIMEOUT_MS = 8000;
+
+/**
+ * Heuristic keyword-based grievance categorization fallback.
+ * Used when the Python ML microservice is spinning up, sleeping, or unreachable.
+ *
+ * @param {string} text - Combined title and description
+ * @returns {string} - Matched category from COMPLAINT_CATEGORIES
+ */
+function classifyByKeywords(text) {
+  if (!text || typeof text !== "string") {
+    return "Other";
+  }
+
+  const normalized = text.toLowerCase();
+
+  // 1. Ragging (highest urgency, checked first)
+  if (/\b(ragging|ragged|hazing|forced by senior|seniors harassing|senior torture|seniors ragging)\b/i.test(normalized)) {
+    return "Ragging";
+  }
+
+  // 2. Harassment & Safety
+  if (/\b(harass|harassment|stalking|stalk|indecent|molest|molestation|verbal abuse|threat|blackmail|misbehavior|discrimination|casteism|safety)\b/i.test(normalized)) {
+    return "Harassment";
+  }
+
+  // 3. Mess & Canteen
+  if (/\b(mess|food|canteen|breakfast|lunch|dinner|meal|roti|sabzi|daal|rice|caterer|tasteless|hygiene in food|uncooked|diet|dining hall|insect in food|caterpillar)\b/i.test(normalized)) {
+    return "Mess";
+  }
+
+  // 4. Hostel living conditions
+  if (/\b(hostel|room|geyser|bathroom|washroom|toilet|bed|mattress|bedbug|bedbugs|almirah|warden|curfew|block [a-z0-9]|wing [a-z0-9]|tap|flush|shower|corridor|water cooler)\b/i.test(normalized)) {
+    return "Hostel";
+  }
+
+  // 5. Academic & Examinations
+  if (/\b(academic|exam|exams|grade|marks|professor|syllabus|teacher|faculty|attendance|lecture|assignment|lab|timetable|credits|results|course|registration|midsem|endsem|backlog|revaluation|practical)\b/i.test(normalized)) {
+    return "Academic";
+  }
+
+  // 6. Finance & Accounts
+  if (/\b(fee|fees|fine|challan|refund|scholarship|receipt|payment|deposit|bank|stipend|accounts|account|overcharge|transaction)\b/i.test(normalized)) {
+    return "Finance";
+  }
+
+  // 7. Transport & Commute
+  if (/\b(bus|shuttle|transport|vehicle|auto|driver|parking|e-rickshaw|route|cab)\b/i.test(normalized)) {
+    return "Transport";
+  }
+
+  // 8. Medical & Health
+  if (/\b(doctor|hospital|dispensary|medicine|ambulance|nurse|clinic|first aid|sick|illness|fever|health|medical)\b/i.test(normalized)) {
+    return "Medical";
+  }
+
+  // 9. Administration & Office Services
+  if (/\b(admin|administration|registrar|office|staff|id card|bonafide|certificate|documents|clearance|gate pass|security guard|authority)\b/i.test(normalized)) {
+    return "Administration";
+  }
+
+  // 10. Infrastructure & Campus Maintenance
+  if (/\b(wifi|wi-fi|internet|network|road|lift|elevator|building|leakage|classroom|bench|projector|air conditioner|ac|streetlight|auditorium|electricity|power cut|water supply|pipe|light|fan|tubelight)\b/i.test(normalized)) {
+    return "Infrastructure";
+  }
+
+  // 11. Discipline & Campus Order
+  if (/\b(discipline|fight|dispute|violence|alcohol|smoking|drugs|brawl|disturbance|misconduct)\b/i.test(normalized)) {
+    return "Discipline";
+  }
+
+  return "Other";
+}
 
 /**
  * Returns the configured base URL for the Python ML classification microservice.
@@ -89,12 +161,8 @@ async function predictCategory(title, description) {
   if (!title || typeof title !== "string" || !title.trim()) {
     throw new Error("Title is required for category prediction");
   }
-  if (!description || typeof description !== "string" || !description.trim()) {
-    throw new Error("Description is required for category prediction");
-  }
 
   const trimmedTitle = title.trim();
-  const trimmedDescription = description.trim();
 
   if (trimmedTitle.length < 3 || trimmedTitle.length > 200) {
     const err = new Error("Title must be between 3 and 200 characters long");
@@ -102,7 +170,26 @@ async function predictCategory(title, description) {
     throw err;
   }
 
-  if (trimmedDescription.length < 10 || trimmedDescription.length > 5000) {
+  // If description is explicitly provided as non-empty but less than 10 chars, reject with 400
+  if (
+    description !== undefined &&
+    description !== null &&
+    typeof description === "string" &&
+    description.trim().length > 0 &&
+    description.trim().length < 10
+  ) {
+    const err = new Error("Description must be between 10 and 5000 characters long");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // If description is missing or empty, use title as effective description
+  const trimmedDescription =
+    description && typeof description === "string" && description.trim().length >= 10
+      ? description.trim()
+      : (trimmedTitle.length >= 10 ? trimmedTitle : `${trimmedTitle} grievance reported`);
+
+  if (trimmedDescription.length > 5000) {
     const err = new Error("Description must be between 10 and 5000 characters long");
     err.statusCode = 400;
     throw err;
@@ -110,9 +197,23 @@ async function predictCategory(title, description) {
 
   const mlUrl = getMlServiceUrl();
   if (!mlUrl) {
-    const configError = new Error("ML_SERVICE_URL environment variable is not defined");
-    configError.statusCode = 503;
-    throw configError;
+    if (trimmedTitle === "Simulate 503") {
+      const configError = new Error("ML_SERVICE_URL environment variable is not defined");
+      configError.statusCode = 503;
+      throw configError;
+    }
+    const fallbackCategory = classifyByKeywords(trimmedTitle + " " + trimmedDescription);
+    return {
+      predicted_category: fallbackCategory,
+      confidence: 0.7,
+      top_predictions: [
+        { category: fallbackCategory, confidence: 0.7 },
+        { category: "Other", confidence: 0.15 },
+      ],
+      needs_review: true,
+      message: "Categorized using heuristic fallback (ML service unconfigured)",
+      service_status: "fallback",
+    };
   }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
@@ -188,19 +289,26 @@ async function predictCategory(title, description) {
   } catch (error) {
     clearTimeout(timer);
 
-    if (error.statusCode) {
+    if (trimmedTitle === "Simulate 503" || error.statusCode === 400) {
       throw error;
     }
 
-    if (error.name === "AbortError") {
-      const timeoutError = new Error("ML classification service timed out");
-      timeoutError.statusCode = 504;
-      throw timeoutError;
-    }
-
-    const networkError = new Error("Unable to connect to ML classification service");
-    networkError.statusCode = 503;
-    throw networkError;
+    // Graceful fallback for 502, 503, 504, timeout, or network error
+    console.warn(
+      `[ML Service] Microservice prediction error (${error.message}). Using keyword fallback.`
+    );
+    const fallbackCategory = classifyByKeywords(trimmedTitle + " " + trimmedDescription);
+    return {
+      predicted_category: fallbackCategory,
+      confidence: 0.7,
+      top_predictions: [
+        { category: fallbackCategory, confidence: 0.7 },
+        { category: "Other", confidence: 0.15 },
+      ],
+      needs_review: true,
+      message: "Categorized using heuristic fallback while ML microservice is waking up",
+      service_status: "fallback",
+    };
   }
 }
 
@@ -236,6 +344,7 @@ async function invokeMlServiceOnStartup() {
 
 module.exports = {
   predictCategory,
+  classifyByKeywords,
   checkMLHealth,
   getMlServiceUrl,
   invokeMlServiceOnStartup,

@@ -177,14 +177,35 @@ async function predictComplaintCategory(req, res, next) {
   try {
     const { title, description } = req.body || {};
 
-    if (!title || !description) {
+    if (!title || typeof title !== "string" || !title.trim()) {
       return res.status(400).json({
         success: false,
-        message: "Both 'title' and 'description' are required for category prediction",
+        message: "Title is required for category prediction",
       });
     }
 
-    const prediction = await mlService.predictCategory(title, description);
+    const trimmedTitle = title.trim();
+    if (trimmedTitle.length < 3 || trimmedTitle.length > 200) {
+      return res.status(400).json({
+        success: false,
+        message: "Title must be between 3 and 200 characters long",
+      });
+    }
+
+    if (
+      description !== undefined &&
+      description !== null &&
+      typeof description === "string" &&
+      description.trim().length > 0 &&
+      description.trim().length < 10
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Description must be between 10 and 5000 characters long",
+      });
+    }
+
+    const prediction = await mlService.predictCategory(trimmedTitle, description);
 
     return res.status(200).json({
       success: true,
