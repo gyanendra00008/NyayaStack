@@ -235,7 +235,7 @@ function Login() {
               />
               Remember me
             </label>
-            <Link to="/login" onClick={() => alert("Please use the verification or reset flow with your administrator.")} className="text-[#7a1620] font-medium hover:underline">
+            <Link to="/forgot-password" className="text-[#7a1620] font-medium hover:underline">
               Forgot Password?
             </Link>
           </div>

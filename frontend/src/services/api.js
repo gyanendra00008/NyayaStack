@@ -76,6 +76,15 @@ export const authApi = {
   getAdminDashboard: () => api.get('/auth/admin/dashboard'),
 };
 
+// Administrator API methods
+export const adminApi = {
+  getAuthorityRequests: (params = {}) => api.get('/admin/authority-requests', { params }),
+  getAuthorityRequestById: (id) => api.get(`/admin/authority-requests/${id}`),
+  approveAuthorityRequest: (id) => api.patch(`/admin/authority-requests/${id}/approve`),
+  rejectAuthorityRequest: (id, reason) => api.patch(`/admin/authority-requests/${id}/reject`, { reason }),
+  getStats: () => api.get('/admin/dashboard'),
+};
+
 // Health API methods
 export const healthApi = {
   getHealth: () => api.get('/health'),
@@ -85,6 +94,36 @@ export const healthApi = {
 export const complaintApi = {
   getCategories: () => api.get('/complaints/categories'),
   predictCategory: (payload) => api.post('/complaints/predict-category', payload),
+  getPublicStats: async () => {
+    try {
+      const res = await api.get('/complaints/public/stats');
+      return res;
+    } catch (err) {
+      if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        try {
+          return await axios.get('http://localhost:3000/api/complaints/public/stats', { timeout: 3000 });
+        } catch {
+          // fallback
+        }
+      }
+      throw err;
+    }
+  },
+  getPublicComplaints: async (params = {}) => {
+    try {
+      const res = await api.get('/complaints/public', { params });
+      return res;
+    } catch (err) {
+      if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        try {
+          return await axios.get('http://localhost:3000/api/complaints/public', { params, timeout: 3000 });
+        } catch {
+          // fallback
+        }
+      }
+      throw err;
+    }
+  },
   createComplaint: (formData) =>
     api.post('/complaints', formData, {
       headers: {

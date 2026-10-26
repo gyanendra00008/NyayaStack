@@ -180,8 +180,11 @@ const verifyOtp = async (req, res) => {
         email: user.email,
         fullName: user.fullName || "",
         rollNo: user.rollNo || "",
+        department: user.department || "",
+        designation: user.designation || "",
         role: user.role,
         isVerified: user.isVerified,
+        verificationStatus: user.verificationStatus || "none",
       },
     });
   } catch (error) {
@@ -291,8 +294,11 @@ const login = async (req, res) => {
         email: user.email,
         fullName: user.fullName || "",
         rollNo: user.rollNo || "",
+        department: user.department || "",
+        designation: user.designation || "",
         role: user.role,
         isVerified: user.isVerified,
+        verificationStatus: user.verificationStatus || "none",
       },
     });
   } catch (error) {
@@ -628,8 +634,11 @@ const getCurrentUser = async (req, res) => {
       email: req.user.email,
       fullName: req.user.fullName || "",
       rollNo: req.user.rollNo || "",
+      department: req.user.department || "",
+      designation: req.user.designation || "",
       role: req.user.role,
       isVerified: req.user.isVerified,
+      verificationStatus: req.user.verificationStatus || "none",
     },
   });
 };
@@ -647,12 +656,12 @@ const adminDashboard = async (req, res) => {
 
 /**
  * Authority / Officer Registration Request
- * Creates an unverified authority account (role: 'officer', isVerified: false)
- * pending review and approval by institutional administrator.
+ * Creates an unverified authority account with pending status
+ * strictly pending review and approval by institutional administrator.
  */
 const registerAuthority = async (req, res) => {
   try {
-    const { name, email, employeeId, password } = req.body;
+    const { name, email, employeeId, department, designation, password } = req.body;
 
     if (!email || !password || (!employeeId && !name)) {
       return res.status(400).json({
@@ -679,29 +688,48 @@ const registerAuthority = async (req, res) => {
       $or: [{ email: trimmedEmail }, { username: safeUsername }],
     });
 
-    if (existing && existing.isVerified) {
+    if (existing && existing.isVerified && existing.verificationStatus === "approved") {
       return res.status(409).json({
         success: false,
         message: "An active account already exists with this official email or employee ID",
       });
     }
 
+    if (existing && existing.role === "officer" && existing.verificationStatus === "pending") {
+      return res.status(409).json({
+        success: false,
+        message: "An authority access request with this official email is already pending review.",
+      });
+    }
+
     const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
-    if (existing && !existing.isVerified) {
+    if (existing && (!existing.isVerified || existing.verificationStatus === "rejected")) {
       existing.password = hashedPassword;
+      // Backend strictly forces role to 'officer' and verificationStatus to 'pending'
       existing.role = "officer";
+      existing.verificationStatus = "pending";
+      existing.isVerified = false;
       existing.fullName = (name || safeUsername).trim();
       existing.rollNo = (employeeId || "").trim();
+      existing.department = (department || "").trim();
+      existing.designation = (designation || "").trim();
+      existing.rejectionReason = "";
+      existing.reviewedBy = null;
+      existing.reviewedAt = null;
       await existing.save();
     } else {
+      // Backend strictly enforces initial role and verification status
       await UserModel.create({
         username: safeUsername,
         email: trimmedEmail,
         fullName: (name || safeUsername).trim(),
         rollNo: (employeeId || "").trim(),
+        department: (department || "").trim(),
+        designation: (designation || "").trim(),
         password: hashedPassword,
         role: "officer",
+        verificationStatus: "pending",
         isVerified: false,
       });
     }

@@ -13,12 +13,20 @@ const {
   predictComplaintCategory,
   getCategories,
   getComplaintById,
+  getPublicComplaints,
+  getPublicStats,
 } = require("../controllers/complaint.controller.js");
 
 const router = express.Router();
 
 // GET /api/complaints/categories - Retrieve authoritative supported complaint categories
 router.get("/categories", getCategories);
+
+// GET /api/complaints/public/stats - Retrieve aggregated transparency statistics (public)
+router.get("/public/stats", getPublicStats);
+
+// GET /api/complaints/public - Retrieve public complaint feed (sanitized, public)
+router.get("/public", getPublicComplaints);
 
 // POST /api/complaints/predict-category - Get ML predicted category for title & description
 router.post("/predict-category", predictComplaintCategory);
