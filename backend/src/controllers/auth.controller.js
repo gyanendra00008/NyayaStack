@@ -10,6 +10,7 @@ const {
   isOtpExpired,
 } = require("../utils/otp.utils.js");
 const { sendOtpEmail, sendPasswordResetOtpEmail } = require("../services/mail.service.js");
+const { getRankForDesignation } = require("../utils/hierarchy.utils.js");
 const {
   JWT_CONFIG,
   getAuthCookieOptions,
@@ -182,6 +183,8 @@ const verifyOtp = async (req, res) => {
         rollNo: user.rollNo || "",
         department: user.department || "",
         designation: user.designation || "",
+        category: user.category || "",
+        rank: user.rank || 999,
         role: user.role,
         isVerified: user.isVerified,
         verificationStatus: user.verificationStatus || "none",
@@ -296,6 +299,8 @@ const login = async (req, res) => {
         rollNo: user.rollNo || "",
         department: user.department || "",
         designation: user.designation || "",
+        category: user.category || "",
+        rank: user.rank || 999,
         role: user.role,
         isVerified: user.isVerified,
         verificationStatus: user.verificationStatus || "none",
@@ -636,6 +641,8 @@ const getCurrentUser = async (req, res) => {
       rollNo: req.user.rollNo || "",
       department: req.user.department || "",
       designation: req.user.designation || "",
+      category: req.user.category || "",
+      rank: req.user.rank || 999,
       role: req.user.role,
       isVerified: req.user.isVerified,
       verificationStatus: req.user.verificationStatus || "none",
@@ -661,7 +668,7 @@ const adminDashboard = async (req, res) => {
  */
 const registerAuthority = async (req, res) => {
   try {
-    const { name, email, employeeId, department, designation, password } = req.body;
+    const { name, email, employeeId, department, designation, category, password } = req.body;
 
     if (!email || !password || (!employeeId && !name)) {
       return res.status(400).json({
@@ -703,6 +710,7 @@ const registerAuthority = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+    const calculatedRank = getRankForDesignation(department, designation);
 
     if (existing && (!existing.isVerified || existing.verificationStatus === "rejected")) {
       existing.password = hashedPassword;
@@ -714,6 +722,8 @@ const registerAuthority = async (req, res) => {
       existing.rollNo = (employeeId || "").trim();
       existing.department = (department || "").trim();
       existing.designation = (designation || "").trim();
+      existing.category = (category || "").trim();
+      existing.rank = calculatedRank;
       existing.rejectionReason = "";
       existing.reviewedBy = null;
       existing.reviewedAt = null;
@@ -727,6 +737,8 @@ const registerAuthority = async (req, res) => {
         rollNo: (employeeId || "").trim(),
         department: (department || "").trim(),
         designation: (designation || "").trim(),
+        category: (category || "").trim(),
+        rank: calculatedRank,
         password: hashedPassword,
         role: "officer",
         verificationStatus: "pending",

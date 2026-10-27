@@ -100,6 +100,8 @@ const FileComplaint = () => {
   // Form submission state
   const [submitting, setSubmitting] = useState(false);
   const [validationError, setValidationError] = useState('');
+  const [existingTitles, setExistingTitles] = useState([]);
+  const [todayComplaintsCount, setTodayComplaintsCount] = useState(0);
 
   // Ensure user is authenticated to access complaint upload/filing
   useEffect(() => {
@@ -109,7 +111,7 @@ const FileComplaint = () => {
     }
   }, [navigate]);
 
-  // Fetch categories from backend on mount
+  // Fetch categories and user's complaints to track duplicate titles and daily limits
   useEffect(() => {
     let isMounted = true;
     complaintApi.getCategories()
@@ -124,14 +126,45 @@ const FileComplaint = () => {
       .catch(() => {
         // Fallback to DEFAULT_CATEGORIES
       });
+
+    // Check existing complaints by authenticated user for duplicate title and daily limit checks
+    complaintApi.getMyComplaints({ limit: 50 })
+      .then(res => {
+        if (!isMounted) return;
+        const complaintsList = res.data?.data || [];
+        const titles = complaintsList.map(c => (c.title || c.subject || '').trim().toLowerCase()).filter(Boolean);
+        setExistingTitles(titles);
+
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const count = complaintsList.filter(c => c.createdAt && new Date(c.createdAt) >= startOfDay).length;
+        setTodayComplaintsCount(count);
+      })
+      .catch(() => {
+        try {
+          const cached = JSON.parse(localStorage.getItem('nyaya_user_petitions') || '[]');
+          const titles = cached.map(c => (c.subject || c.title || '').trim().toLowerCase()).filter(Boolean);
+          setExistingTitles(titles);
+        } catch (_) {}
+      });
+
     return () => { isMounted = false; };
   }, []);
 
   const changeStep = (s) => {
     setValidationError('');
     if (s > 1) {
-      if (!formData.subject.trim() || formData.subject.trim().length < 3) {
+      const trimmedTitle = formData.subject.trim();
+      if (!trimmedTitle || trimmedTitle.length < 3) {
         setValidationError('Subject must be at least 3 characters long.');
+        return;
+      }
+      if (existingTitles.includes(trimmedTitle.toLowerCase())) {
+        setValidationError('You have already submitted a complaint with this title. Duplicate complaints are not allowed.');
+        return;
+      }
+      if (todayComplaintsCount >= 10) {
+        setValidationError('Daily complaint limit reached. You cannot submit more than 10 complaints in a day.');
         return;
       }
       if (!formData.desc.trim() || formData.desc.trim().length < 10) {
@@ -315,6 +348,17 @@ const FileComplaint = () => {
       return;
     }
 
+    if (existingTitles.includes(trimmedTitle.toLowerCase())) {
+      setValidationError('You have already submitted a complaint with this title. Duplicate complaints are not allowed.');
+      setCurrentStep(1);
+      return;
+    }
+
+    if (todayComplaintsCount >= 10) {
+      setValidationError('Daily complaint limit reached. You cannot submit more than 10 complaints in a day.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const fd = new FormData();
@@ -422,29 +466,41 @@ const FileComplaint = () => {
 
             {currentStep === 1 && (
               <div className="bg-white p-8 md:p-10 rounded-2xl border border-stone-200/80 shadow-sm w-full min-h-[80vh] flex flex-col space-y-6">
-                <div className="border-b border-stone-100 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                <div className="border-b border-stone-100 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div>
                     <h3 className="font-bold text-xl">Step 1: Enter Grievance Details</h3>
                     <p className="text-sm text-stone-400 mt-1">Describe the issue clearly for automated clustering and fast assignment</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleSuggestCategory}
-                    disabled={mlLoading}
-                    className="px-4 py-2 bg-amber-50 hover:bg-amber-100 text-[#7a1620] border border-amber-200 rounded-xl text-xs font-bold transition flex items-center gap-2 self-start md:self-auto shadow-xs disabled:opacity-60"
-                  >
-                    {mlLoading ? (
-                      <>
-                        <i className="fa-solid fa-spinner fa-spin"></i>
-                        <span>AI Analyzing Grievance...</span>
-                      </>
-                    ) : (
-                      <>
-                        <i className="fa-solid fa-wand-magic-sparkles text-amber-600"></i>
-                        <span>Suggest Category (AI)</span>
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className={`text-xs px-3 py-1.5 rounded-xl font-semibold border flex items-center gap-1.5 shadow-xs ${
+                      todayComplaintsCount >= 10
+                        ? 'bg-rose-50 text-rose-700 border-rose-300'
+                        : todayComplaintsCount >= 8
+                        ? 'bg-amber-50 text-amber-700 border-amber-300'
+                        : 'bg-stone-50 text-stone-600 border-stone-200'
+                    }`}>
+                      <i className={`fa-solid fa-calendar-day ${todayComplaintsCount >= 10 ? 'text-rose-600' : 'text-stone-400'}`}></i>
+                      <span>Daily Quota: <strong>{todayComplaintsCount}/10</strong> used</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleSuggestCategory}
+                      disabled={mlLoading}
+                      className="px-4 py-2 bg-amber-50 hover:bg-amber-100 text-[#7a1620] border border-amber-200 rounded-xl text-xs font-bold transition flex items-center gap-2 self-start md:self-auto shadow-xs disabled:opacity-60"
+                    >
+                      {mlLoading ? (
+                        <>
+                          <i className="fa-solid fa-spinner fa-spin"></i>
+                          <span>AI Analyzing Grievance...</span>
+                        </>
+                      ) : (
+                        <>
+                          <i className="fa-solid fa-wand-magic-sparkles text-amber-600"></i>
+                          <span>Suggest Category (AI)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {/* AI Suggestion Feedback Pill */}
@@ -576,8 +632,18 @@ const FileComplaint = () => {
                     value={formData.subject}
                     onChange={(e) => handleFieldChange('subject', e.target.value)}
                     placeholder="Enter short summary of the grievance (e.g. Geyser not functioning in hostel Block B)"
-                    className="w-full px-4 py-3 text-sm rounded-xl border border-stone-300 focus:outline-none focus:border-[#6B1724]"
+                    className={`w-full px-4 py-3 text-sm rounded-xl border focus:outline-none ${
+                      formData.subject.trim() && existingTitles.includes(formData.subject.trim().toLowerCase())
+                        ? 'border-rose-400 bg-rose-50/20 focus:border-rose-600'
+                        : 'border-stone-300 focus:border-[#6B1724]'
+                    }`}
                   />
+                  {formData.subject.trim() && existingTitles.includes(formData.subject.trim().toLowerCase()) && (
+                    <p className="text-[11px] text-rose-600 font-medium mt-1.5 flex items-center gap-1.5">
+                      <i className="fa-solid fa-triangle-exclamation"></i>
+                      <span>You have already submitted a complaint with this title. Duplicate complaints are not allowed.</span>
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex-1 flex flex-col">

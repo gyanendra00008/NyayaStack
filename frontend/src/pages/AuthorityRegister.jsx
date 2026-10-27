@@ -63,6 +63,17 @@ export const DEPARTMENT_DESIGNATIONS = {
   ],
 };
 
+export const DEPARTMENT_CATEGORIES = {
+  "Hostel & Mess": ["Hostel", "Mess"],
+  "Academic Affairs": ["Academic"],
+  "Examination Cell": ["Academic"],
+  "Anti-Ragging Committee": ["Ragging"],
+  "Internal Complaints Committee": ["Harassment"],
+  "Library": ["Academic", "Infrastructure", "Other"],
+  "IT & Infrastructure": ["Infrastructure"],
+  "Administration": ["Administration", "Finance", "Discipline", "Transport", "Medical", "Other"],
+};
+
 const DEPARTMENTS = Object.keys(DEPARTMENT_DESIGNATIONS);
 
 function AuthorityRegister() {
@@ -76,6 +87,7 @@ function AuthorityRegister() {
     employeeId: "",
     department: "",
     designation: "",
+    category: "",
     password: "",
     confirmPassword: "",
   });
@@ -86,6 +98,7 @@ function AuthorityRegister() {
       setForm((prev) => ({
         ...prev,
         department: value,
+        category: "",
         designation: DEPARTMENT_DESIGNATIONS[value]?.includes(prev.designation)
           ? prev.designation
           : "",
@@ -97,6 +110,10 @@ function AuthorityRegister() {
 
   const availableDesignations = form.department
     ? DEPARTMENT_DESIGNATIONS[form.department] || []
+    : [];
+
+  const availableCategories = form.department
+    ? DEPARTMENT_CATEGORIES[form.department] || []
     : [];
 
   const handleSubmit = async (e) => {
@@ -118,6 +135,7 @@ function AuthorityRegister() {
         employeeId: form.employeeId.trim(),
         department: form.department,
         designation: form.designation,
+        category: form.category || "",
         password: form.password,
       });
       setSubmitted(true);
@@ -250,7 +268,7 @@ function AuthorityRegister() {
 
               <div>
                 <label htmlFor="designation" className={labelClass}>
-                  Designation {form.department && <span className="text-xs font-normal text-stone-500">({form.department})</span>}
+                  Designation / Authority Rank {form.department && <span className="text-xs font-normal text-stone-500">({form.department})</span>}
                 </label>
                 <select
                   id="designation"
@@ -264,11 +282,60 @@ function AuthorityRegister() {
                   <option value="" disabled>
                     {form.department ? "Select designation" : "Please select department first"}
                   </option>
-                  {availableDesignations.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
+                  {availableDesignations.map((d, idx) => {
+                    const isLowest = idx === availableDesignations.length - 1;
+                    const isHighest = idx === 0;
+                    const rankLabel = isLowest
+                      ? " (Lowest Rank - Initial Grievance Desk)"
+                      : isHighest
+                      ? " (Executive Head / Level 1)"
+                      : ` (Level ${idx + 1})`;
+                    return (
+                      <option key={d} value={d}>
+                        {d} {rankLabel}
+                      </option>
+                    );
+                  })}
                 </select>
+                {form.designation && (
+                  <p className="text-[11px] text-stone-500 mt-1">
+                    {availableDesignations.indexOf(form.designation) === availableDesignations.length - 1 ? (
+                      <span className="text-emerald-700 font-semibold">
+                        ★ Lowest-Rank Redressal Desk: User complaints in this department/category will be directly routed to this authority.
+                      </span>
+                    ) : (
+                      <span>
+                        Executive Oversight Level {availableDesignations.indexOf(form.designation) + 1}. Unresolved grievances escalate here from the lowest rank.
+                      </span>
+                    )}
+                  </p>
+                )}
               </div>
+
+              {availableCategories.length > 0 && (
+                <div>
+                  <label htmlFor="category" className={labelClass}>
+                    Grievance Category Focus <span className="text-xs font-normal text-stone-500">(Optional)</span>
+                  </label>
+                  <select
+                    id="category"
+                    name="category"
+                    value={form.category}
+                    onChange={handleChange}
+                    className={inputClass}
+                  >
+                    <option value="">All Department Categories (Default)</option>
+                    {availableCategories.map((c) => (
+                      <option key={c} value={c}>
+                        {c} Only
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-stone-500 mt-1">
+                    Route complaints across all department categories or restrict to a specific category.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label htmlFor="password" className={labelClass}>Password</label>

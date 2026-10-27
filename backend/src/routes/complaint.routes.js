@@ -1,5 +1,5 @@
 const express = require("express");
-const { authenticateUser } = require("../middleware/auth.middleware.js");
+const { authenticateUser, authorizeRoles } = require("../middleware/auth.middleware.js");
 const {
   preCheckRequestSize,
   handleMulterUpload,
@@ -10,6 +10,8 @@ const {
 const {
   createComplaint,
   getMyComplaints,
+  getAssignedComplaints,
+  updateComplaintStatus,
   predictComplaintCategory,
   getCategories,
   getComplaintById,
@@ -48,6 +50,22 @@ router.get(
   authenticateUser,
   validatePaginationQuery,
   getMyComplaints
+);
+
+// GET /api/complaints/assigned - Retrieve complaints assigned to lowest rank authority desk / officer
+router.get(
+  "/assigned",
+  authenticateUser,
+  authorizeRoles("officer", "admin"),
+  getAssignedComplaints
+);
+
+// PATCH /api/complaints/:complaintId/status - Update complaint resolution status
+router.patch(
+  "/:complaintId/status",
+  authenticateUser,
+  authorizeRoles("officer", "admin"),
+  updateComplaintStatus
 );
 
 // GET /api/complaints/:complaintId - Retrieve a single complaint by ID
