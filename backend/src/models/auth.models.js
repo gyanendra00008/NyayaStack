@@ -45,6 +45,16 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    category: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    rank: {
+      type: Number,
+      default: 999,
+      index: true,
+    },
     role: {
       type: String,
       enum: ["user", "officer", "admin"],

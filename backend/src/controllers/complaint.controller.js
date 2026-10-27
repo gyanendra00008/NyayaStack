@@ -1,8 +1,52 @@
 const crypto = require("crypto");
+const mongoose = require("mongoose");
 const Complaint = require("../models/complaint.models.js");
-const { COMPLAINT_CATEGORIES } = require("../models/complaint.models.js");
+const { COMPLAINT_CATEGORIES, COMPLAINT_STATUSES } = require("../models/complaint.models.js");
+const UserModel = require("../models/auth.models.js");
+const {
+  CATEGORY_TO_DEPARTMENT,
+  DEPARTMENT_DESIGNATIONS,
+  getRankForDesignation,
+  getLowestRankDesignation,
+  getLowestRankNumber,
+  findLowestRankAuthority,
+} = require("../utils/hierarchy.utils.js");
 const cloudinaryService = require("../services/cloudinary.service.js");
 const mlService = require("../services/ml.service.js");
+
+/**
+ * Cross-database safe officer populator.
+ * Attaches officer metadata without relying on Mongoose cross-connection populate.
+ */
+async function populateOfficers(complaints) {
+  if (!Array.isArray(complaints) || complaints.length === 0) return complaints;
+  const officerIds = complaints
+    .map((c) => c.assignedTo)
+    .filter((id) => id && mongoose.Types.ObjectId.isValid(id));
+
+  if (officerIds.length === 0) return complaints;
+
+  try {
+    const officers = await UserModel.find({ _id: { $in: officerIds } })
+      .select("_id fullName username designation email department")
+      .lean();
+
+    const officerMap = new Map();
+    officers.forEach((o) => officerMap.set(o._id.toString(), o));
+
+    return complaints.map((c) => {
+      if (c.assignedTo && officerMap.has(c.assignedTo.toString())) {
+        return {
+          ...c,
+          assignedOfficer: officerMap.get(c.assignedTo.toString()),
+        };
+      }
+      return c;
+    });
+  } catch (e) {
+    return complaints;
+  }
+}
 
 /**
  * Generates a unique collision-resistant complaint identifier.
@@ -62,6 +106,16 @@ async function createComplaint(req, res, next) {
       }
     }
 
+    // Determine target department and route to the lowest rank authority of that category
+    const department = req.body.department || CATEGORY_TO_DEPARTMENT[resolvedCategory] || "Administration";
+    const routing = await findLowestRankAuthority({
+      department,
+      category: resolvedCategory,
+      UserModel,
+    });
+
+    const initialStatus = "Filed";
+
     // 2. Persist complaint into the storage database with retry on complaintId collision
     const maxRetries = 3;
     let savedComplaint = null;
@@ -74,10 +128,15 @@ async function createComplaint(req, res, next) {
           complaintId,
           userId,
           category: resolvedCategory,
+          department: routing.department,
+          assignedTo: routing.assignedTo,
+          assignedDesignation: routing.assignedDesignation,
+          assignedRank: routing.assignedRank,
+          priority: req.body.priority || "Medium (Standard SLA 48h)",
           title,
           description,
           attachments: uploadedAttachments,
-          status: "Filed",
+          status: initialStatus,
           isAnonymous: Boolean(isAnonymous),
         });
 
@@ -105,6 +164,11 @@ async function createComplaint(req, res, next) {
       data: {
         complaintId: savedComplaint.complaintId,
         category: savedComplaint.category,
+        department: savedComplaint.department,
+        assignedTo: savedComplaint.assignedTo,
+        assignedDesignation: savedComplaint.assignedDesignation,
+        assignedRank: savedComplaint.assignedRank,
+        priority: savedComplaint.priority,
         title: savedComplaint.title,
         description: savedComplaint.description,
         status: savedComplaint.status,
@@ -142,15 +206,17 @@ async function getMyComplaints(req, res, next) {
 
     const query = { userId };
 
-    const [total, complaints] = await Promise.all([
+    const [total, rawComplaints] = await Promise.all([
       Complaint.countDocuments(query),
       Complaint.find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .select("complaintId category title description status isAnonymous attachments createdAt updatedAt -_id")
+        .select("complaintId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank createdAt updatedAt -_id")
         .lean(),
     ]);
+
+    const complaints = await populateOfficers(rawComplaints);
 
     const totalPages = Math.ceil(total / limit);
 
@@ -252,7 +318,7 @@ async function getComplaintById(req, res, next) {
     }
 
     const complaint = await Complaint.findOne({ complaintId })
-      .select("complaintId userId category title description status isAnonymous attachments createdAt updatedAt -_id")
+      .select("complaintId userId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank createdAt updatedAt -_id")
       .lean();
 
     if (!complaint) {
@@ -262,23 +328,43 @@ async function getComplaintById(req, res, next) {
       });
     }
 
-    // Access control: User can only view their own complaint unless they are an approved officer or admin
-    const isApprovedOfficer = userRole === "officer" && req.user?.verificationStatus === "approved";
+    // Access control: User can view their own complaint.
+    // If officer is viewing, verify they are in the assigned department and lowest rank authority desk / assigned officer.
     const isAdmin = userRole === "admin";
-    if (
-      complaint.userId &&
-      complaint.userId.toString() !== userId?.toString() &&
-      !isAdmin &&
-      !isApprovedOfficer
-    ) {
+    const isOwner = complaint.userId && complaint.userId.toString() === userId?.toString();
+    const isApprovedOfficer = userRole === "officer" && req.user?.verificationStatus === "approved";
+
+    let isAuthorizedOfficer = false;
+    if (isApprovedOfficer) {
+      const assignedToId = complaint.assignedTo?._id || complaint.assignedTo;
+      if (assignedToId && assignedToId.toString() === userId?.toString()) {
+        isAuthorizedOfficer = true;
+      } else if (complaint.department && complaint.department === req.user?.department) {
+        if (!complaint.assignedTo || complaint.assignedDesignation === req.user?.designation || complaint.assignedRank === req.user?.rank) {
+          isAuthorizedOfficer = true;
+        }
+      }
+    }
+
+    if (!isOwner && !isAdmin && !isAuthorizedOfficer) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to view this complaint",
       });
     }
 
+    // Attach populated assigned officer metadata safely
+    let assignedOfficer = null;
+    if (complaint.assignedTo && mongoose.Types.ObjectId.isValid(complaint.assignedTo)) {
+      try {
+        assignedOfficer = await UserModel.findById(complaint.assignedTo)
+          .select("_id fullName username designation email department")
+          .lean();
+      } catch (e) {}
+    }
+
     // Sanitize response so userId is not leaked
-    const sanitizedComplaint = { ...complaint };
+    const sanitizedComplaint = { ...complaint, assignedOfficer };
     delete sanitizedComplaint.userId;
 
     return res.status(200).json({
@@ -324,7 +410,8 @@ async function getPublicComplaints(req, res, next) {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum)
-        .select("complaintId category title description status isAnonymous attachments createdAt updatedAt -_id")
+        .select("complaintId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank createdAt updatedAt -_id")
+        .populate("assignedTo", "fullName username designation email")
         .lean(),
     ]);
 
@@ -397,9 +484,221 @@ async function getPublicStats(req, res, next) {
   }
 }
 
+/**
+ * Controller: GET /api/complaints/assigned
+ * Retrieves grievances assigned to the authenticated officer (lowest rank authority desk) or admin.
+ */
+async function getAssignedComplaints(req, res, next) {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required to retrieve assigned complaints",
+      });
+    }
+
+    const { status, category, search, page = 1, limit = 20 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    let query = {};
+
+    if (user.role === "admin") {
+      // Administrator has global oversight across all institutional departments
+      if (req.query.department && req.query.department !== "All") {
+        query.department = req.query.department;
+      }
+    } else if (user.role === "officer") {
+      if (user.verificationStatus !== "approved") {
+        return res.status(403).json({
+          success: false,
+          message: "Authority account is pending approval by administrator",
+        });
+      }
+
+      const officerDept = user.department || "Administration";
+      const officerDesignation = user.designation || "";
+      const officerRank =
+        typeof user.rank === "number" && user.rank !== 999
+          ? user.rank
+          : getRankForDesignation(officerDept, officerDesignation);
+      const officerCategory = user.category || "";
+
+      // Visibility Rule: Grievances routed to the lowest rank authority are visible to:
+      // 1. The officer specifically assigned (assignedTo === user._id)
+      // 2. An officer of that department holding the assigned lowest-rank designation
+      // Higher rank officers will NOT see grievances routed to lower rank desks!
+      const visibilityConditions = [{ assignedTo: user._id }];
+
+      if (officerDesignation) {
+        visibilityConditions.push({
+          department: officerDept,
+          assignedDesignation: officerDesignation,
+        });
+      }
+
+      if (officerRank && officerRank !== 999) {
+        visibilityConditions.push({
+          department: officerDept,
+          assignedRank: officerRank,
+        });
+      }
+
+      query.$and = [{ department: officerDept }, { $or: visibilityConditions }];
+
+      // If officer is assigned to a specific category
+      if (officerCategory && officerCategory !== "All") {
+        query.$and.push({ category: officerCategory });
+      }
+    } else {
+      return res.status(403).json({
+        success: false,
+        message: "Only authorities and administrators can access assigned grievances",
+      });
+    }
+
+    // Apply optional status filter
+    if (status && status !== "All") {
+      if (query.$and) {
+        query.$and.push({ status });
+      } else {
+        query.status = status;
+      }
+    }
+
+    // Apply optional category filter
+    if (category && category !== "All") {
+      if (query.$and) {
+        query.$and.push({ category });
+      } else {
+        query.category = category;
+      }
+    }
+
+    // Apply search filter
+    if (search && typeof search === "string" && search.trim()) {
+      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const searchRegex = new RegExp(escaped, "i");
+      const searchCondition = {
+        $or: [{ title: searchRegex }, { description: searchRegex }, { complaintId: searchRegex }],
+      };
+      if (query.$and) {
+        query.$and.push(searchCondition);
+      } else {
+        query = { ...query, ...searchCondition };
+      }
+    }
+
+    const [total, rawComplaints, pendingCount, resolvedCount, escalatedCount] = await Promise.all([
+      Complaint.countDocuments(query),
+      Complaint.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .select(
+          "complaintId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank createdAt updatedAt -_id"
+        )
+        .lean(),
+      Complaint.countDocuments({
+        ...query,
+        status: { $in: ["Filed", "Assigned", "In Review", "In Progress"] },
+      }),
+      Complaint.countDocuments({ ...query, status: "Resolved" }),
+      Complaint.countDocuments({ ...query, status: "Escalated" }),
+    ]);
+
+    const complaints = await populateOfficers(rawComplaints);
+
+    return res.status(200).json({
+      success: true,
+      counts: {
+        total,
+        pending: pendingCount,
+        resolved: resolvedCount,
+        escalated: escalatedCount,
+      },
+      data: complaints,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Controller: PATCH /api/complaints/:complaintId/status
+ * Updates grievance workflow status (e.g. Assigned -> In Progress -> Resolved).
+ */
+async function updateComplaintStatus(req, res, next) {
+  try {
+    const { complaintId } = req.params;
+    const { status } = req.body;
+
+    if (!COMPLAINT_STATUSES.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid complaint status. Allowed statuses: " + COMPLAINT_STATUSES.join(", "),
+      });
+    }
+
+    const complaint = await Complaint.findOne({ complaintId });
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: `Complaint with ID '${complaintId}' was not found`,
+      });
+    }
+
+    // Access control: only assigned officer or admin can update status
+    const userId = req.user._id.toString();
+    const isAdmin = req.user.role === "admin";
+    const isAssignedOfficer =
+      req.user.role === "officer" &&
+      req.user.verificationStatus === "approved" &&
+      (complaint.assignedTo?.toString() === userId ||
+        (complaint.department === req.user.department &&
+          (complaint.assignedDesignation === req.user.designation ||
+            complaint.assignedRank === req.user.rank)));
+
+    if (!isAdmin && !isAssignedOfficer) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to update the status of this grievance",
+      });
+    }
+
+    complaint.status = status;
+    if (!complaint.assignedTo && isAssignedOfficer) {
+      complaint.assignedTo = req.user._id;
+    }
+    await complaint.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Complaint status updated to '${status}' successfully`,
+      data: {
+        complaintId: complaint.complaintId,
+        status: complaint.status,
+        updatedAt: complaint.updatedAt,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   createComplaint,
   getMyComplaints,
+  getAssignedComplaints,
+  updateComplaintStatus,
   predictComplaintCategory,
   getCategories,
   getComplaintById,

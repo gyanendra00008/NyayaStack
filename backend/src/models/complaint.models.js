@@ -18,10 +18,12 @@ const COMPLAINT_CATEGORIES = [
 
 const COMPLAINT_STATUSES = [
   "Filed",
+  "Assigned",
   "In Review",
   "In Progress",
   "Resolved",
   "Rejected",
+  "Escalated",
 ];
 
 const attachmentSchema = new mongoose.Schema(
@@ -105,6 +107,31 @@ const complaintSchema = new mongoose.Schema(
       type: String,
       enum: COMPLAINT_STATUSES,
       default: "Filed",
+    },
+    department: {
+      type: String,
+      trim: true,
+      default: "",
+      index: true,
+    },
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+      index: true,
+    },
+    assignedDesignation: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    assignedRank: {
+      type: Number,
+      default: null,
+    },
+    priority: {
+      type: String,
+      trim: true,
+      default: "Medium (Standard SLA 48h)",
     },
     isAnonymous: {
       type: Boolean,

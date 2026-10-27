@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const UserModel = require("../models/auth.models.js");
 const Complaint = require("../models/complaint.models.js");
+const { getRankForDesignation } = require("../utils/hierarchy.utils.js");
 
 /**
  * Retrieve list of authority registration applications with optional status and search filtering
@@ -36,7 +37,7 @@ const getAuthorityRequests = async (req, res) => {
     const [requests, pendingCount, approvedCount, rejectedCount, totalCount] = await Promise.all([
       UserModel.find(query)
         .select(
-          "username email fullName rollNo department designation role verificationStatus isVerified reviewedBy reviewedAt rejectionReason createdAt updatedAt"
+          "username email fullName rollNo department designation category rank role verificationStatus isVerified reviewedBy reviewedAt rejectionReason createdAt updatedAt"
         )
         .populate("reviewedBy", "username email fullName")
         .sort({ createdAt: -1 }),
@@ -55,6 +56,8 @@ const getAuthorityRequests = async (req, res) => {
       employeeId: item.rollNo || "",
       department: item.department || "General",
       designation: item.designation || "Officer",
+      category: item.category || "",
+      rank: item.rank || 999,
       role: item.role,
       verificationStatus: item.verificationStatus,
       isVerified: item.isVerified,
@@ -106,7 +109,7 @@ const getAuthorityRequestById = async (req, res) => {
 
     const applicant = await UserModel.findOne({ _id: id, role: "officer" })
       .select(
-        "username email fullName rollNo department designation role verificationStatus isVerified reviewedBy reviewedAt rejectionReason createdAt updatedAt"
+        "username email fullName rollNo department designation category rank role verificationStatus isVerified reviewedBy reviewedAt rejectionReason createdAt updatedAt"
       )
       .populate("reviewedBy", "username email fullName");
 
@@ -128,6 +131,8 @@ const getAuthorityRequestById = async (req, res) => {
         employeeId: applicant.rollNo || "",
         department: applicant.department || "General",
         designation: applicant.designation || "Officer",
+        category: applicant.category || "",
+        rank: applicant.rank || 999,
         role: applicant.role,
         verificationStatus: applicant.verificationStatus,
         isVerified: applicant.isVerified,
@@ -181,7 +186,32 @@ const approveAuthorityRequest = async (req, res) => {
     officer.reviewedBy = req.user._id;
     officer.reviewedAt = new Date();
     officer.rejectionReason = "";
+    if (!officer.rank || officer.rank === 999) {
+      officer.rank = getRankForDesignation(officer.department, officer.designation);
+    }
     await officer.save();
+
+    // Auto-link any previously unassigned complaints in this department matching this officer's designation
+    try {
+      const matchCriteria = {
+        department: officer.department,
+        assignedTo: null,
+      };
+      if (officer.designation) {
+        matchCriteria.assignedDesignation = officer.designation;
+      }
+      if (officer.category && officer.category !== "All") {
+        matchCriteria.category = officer.category;
+      }
+      await Complaint.updateMany(matchCriteria, {
+        $set: {
+          assignedTo: officer._id,
+          status: "Assigned",
+        },
+      });
+    } catch (e) {
+      console.warn("Auto-assignment on officer approval warning:", e.message);
+    }
 
     return res.status(200).json({
       success: true,

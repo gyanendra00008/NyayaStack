@@ -17,6 +17,8 @@ const STATUS_STYLES = {
 const FILTERS = ['All', 'Filed', 'In Review', 'In Progress', 'Resolved', 'Rejected'];
 
 const MyPetitions = () => {
+  const isOfficer = localStorage.getItem('nyaya_user_role') === 'officer';
+  const [viewScope, setViewScope] = useState(isOfficer ? 'assigned' : 'filed');
   const [filter, setFilter] = useState('All');
   const [backendPetitions, setBackendPetitions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -28,14 +30,22 @@ const MyPetitions = () => {
 
     if (token) {
       setLoading(true);
-      complaintApi.getMyComplaints({ limit: 50 })
+      setError('');
+      const apiCall =
+        viewScope === 'assigned'
+          ? complaintApi.getAssignedComplaints({ limit: 50 })
+          : complaintApi.getMyComplaints({ limit: 50 });
+
+      apiCall
         .then((res) => {
           if (isMounted && res.data?.data) {
             const mapped = res.data.data.map((c) => ({
               id: c.complaintId,
               subject: c.title,
               category: c.category,
-              priority: 'Standard',
+              department: c.department,
+              assignedDesignation: c.assignedDesignation,
+              priority: c.priority || 'Standard',
               status: c.status || 'Filed',
               isAnonymous: Boolean(c.isAnonymous),
               time: c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recently',
@@ -47,8 +57,8 @@ const MyPetitions = () => {
         })
         .catch((err) => {
           if (isMounted) {
-            // Non-critical, fallback to local storage
             console.warn('Could not load live backend complaints:', err.message);
+            setError(err.response?.data?.message || 'Failed to load petitions.');
           }
         })
         .finally(() => {
@@ -57,7 +67,7 @@ const MyPetitions = () => {
     }
 
     return () => { isMounted = false; };
-  }, []);
+  }, [viewScope]);
 
   const petitions = useMemo(() => {
     // Only real complaints fetched directly from the backend API for this authenticated user
@@ -112,6 +122,39 @@ const MyPetitions = () => {
           {error && (
             <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl">
               {error}
+            </div>
+          )}
+
+          {/* Officer Scope Toggle */}
+          {isOfficer && (
+            <div className="bg-white p-3 rounded-2xl border border-stone-200/80 shadow-xs flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setViewScope('assigned')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                    viewScope === 'assigned'
+                      ? 'bg-[#6B1724] text-white shadow-xs'
+                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                  }`}
+                >
+                  <i className="fa-solid fa-inbox"></i> Assigned to My Desk (Lowest Rank Authority)
+                </button>
+                <button
+                  onClick={() => setViewScope('filed')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                    viewScope === 'filed'
+                      ? 'bg-[#6B1724] text-white shadow-xs'
+                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                  }`}
+                >
+                  <i className="fa-solid fa-user-pen"></i> Filed by Me
+                </button>
+              </div>
+              <span className="text-xs text-stone-500 font-semibold hidden md:inline">
+                {viewScope === 'assigned'
+                  ? 'Showing grievances routed to your lowest-rank authority desk'
+                  : 'Showing grievances created by your personal account'}
+              </span>
             </div>
           )}
 

@@ -10,6 +10,25 @@ const PetitionDetails = () => {
   const [complaintData, setComplaintData] = useState(null);
   const [slaSeconds, setSlaSeconds] = useState(5025);
   const [chatInput, setChatInput] = useState('');
+  const isOfficer =
+    localStorage.getItem('nyaya_user_role') === 'officer' ||
+    localStorage.getItem('nyaya_user_role') === 'admin';
+  const [statusUpdating, setStatusUpdating] = useState(false);
+
+  const handleStatusChange = async (nextStatus) => {
+    const cid = complaintData?.complaintId || queryId;
+    if (!cid) return;
+    setStatusUpdating(true);
+    try {
+      await complaintApi.updateComplaintStatus(cid, { status: nextStatus });
+      setComplaintData((prev) => ({ ...prev, status: nextStatus }));
+      alert(`Grievance status updated to "${nextStatus}"`);
+    } catch (err) {
+      alert(err.response?.data?.message || `Failed to update status to ${nextStatus}`);
+    } finally {
+      setStatusUpdating(false);
+    }
+  };
   const [messages, setMessages] = useState([
     {
       from: 'icc',
@@ -228,22 +247,52 @@ const PetitionDetails = () => {
                 </h2>
                 <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 font-semibold"><i className="fa-solid fa-shield"></i> Merkle Verified</span>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#FAF5EE] p-3 rounded-xl border border-stone-200">
                 <div>
                   <span className="text-stone-400 block text-[10px]">Category:</span>
                   <span className="font-bold text-stone-800">{complaintData?.category || 'Harassment & Safety'}</span>
                 </div>
                 <div>
-                  <span className="text-stone-400 block text-[10px]">Filed On:</span>
-                  <span className="font-bold text-stone-800">
-                    {complaintData?.createdAt ? new Date(complaintData.createdAt).toLocaleDateString() : '12 Oct 2026, 10:30 AM'}
+                  <span className="text-stone-400 block text-[10px]">Department:</span>
+                  <span className="font-bold text-stone-800">{complaintData?.department || 'Department Grievance Cell'}</span>
+                </div>
+                <div>
+                  <span className="text-stone-400 block text-[10px]">Redressal Desk (Lowest Rank):</span>
+                  <span className="font-bold text-[#7a1620]">
+                    {complaintData?.assignedDesignation
+                      ? `${complaintData.assignedDesignation} (Rank ${complaintData.assignedRank || 'Field'})`
+                      : 'Initial Redressal Officer'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-stone-400 block text-[10px]">Status:</span>
+                  <span className="text-stone-400 block text-[10px]">Current Status:</span>
                   <span className="font-bold text-emerald-700">{complaintData?.status || 'Filed'}</span>
                 </div>
               </div>
+
+              {isOfficer && (
+                <div className="flex items-center gap-2 pt-1 border-t border-stone-100">
+                  <span className="text-[11px] font-bold text-stone-500">Authority Action:</span>
+                  {complaintData?.status !== 'In Progress' && (
+                    <button
+                      disabled={statusUpdating}
+                      onClick={() => handleStatusChange('In Progress')}
+                      className="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 text-xs font-semibold transition"
+                    >
+                      <i className="fa-solid fa-spinner mr-1"></i> Start Work / In Progress
+                    </button>
+                  )}
+                  {complaintData?.status !== 'Resolved' && (
+                    <button
+                      disabled={statusUpdating}
+                      onClick={() => handleStatusChange('Resolved')}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold transition"
+                    >
+                      <i className="fa-solid fa-check mr-1"></i> Mark Resolved
+                    </button>
+                  )}
+                </div>
+              )}
               <div>
                 <span className="text-stone-400 block text-[10px] mb-1">Description:</span>
                 <p className="bg-[#FAF5EE] p-3.5 rounded-xl border border-stone-200 text-stone-700 leading-relaxed whitespace-pre-wrap">
