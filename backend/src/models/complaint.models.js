@@ -24,6 +24,22 @@ const COMPLAINT_STATUSES = [
   "Rejected",
 ];
 
+// SLA (in days) per category. Change values here as per college policy.
+const SLA_DAYS = {
+  Harassment: 2,
+  Ragging: 2,
+  Medical: 2,
+  Hostel: 3,
+  Mess: 3,
+  Transport: 3,
+  Infrastructure: 5,
+  Discipline: 5,
+  Academic: 7,
+  Administration: 7,
+  Finance: 7,
+  Other: 7,
+};
+
 const attachmentSchema = new mongoose.Schema(
   {
     url: {
@@ -106,6 +122,14 @@ const complaintSchema = new mongoose.Schema(
       enum: COMPLAINT_STATUSES,
       default: "Filed",
     },
+    // SLA fields
+    slaDueAt: {
+      type: Date,
+      index: true,
+    },
+    resolvedAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
@@ -126,6 +150,28 @@ const complaintSchema = new mongoose.Schema(
   }
 );
 
+// New complaint: set slaDueAt based on category
+complaintSchema.pre("validate", function (next) {
+  if (this.isNew && !this.slaDueAt) {
+    const days = SLA_DAYS[this.category] ?? 7;
+    this.slaDueAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  }
+  next();
+});
+
+// Status changed: set / clear resolvedAt
+// NOTE: works only with doc.save(), not findOneAndUpdate / updateOne
+complaintSchema.pre("save", function (next) {
+  if (!this.isNew && this.isModified("status")) {
+    if (this.status === "Resolved") {
+      this.resolvedAt = new Date();
+    } else {
+      this.resolvedAt = undefined; // reopened
+    }
+  }
+  next();
+});
+
 /**
  * Returns the Complaint model registered strictly on the storage connection.
  * Avoids registering the model on the primary authentication database.
@@ -144,6 +190,7 @@ const Complaint = new Proxy(function () {}, {
     if (prop === "getComplaintModel") return getComplaintModel;
     if (prop === "COMPLAINT_CATEGORIES") return COMPLAINT_CATEGORIES;
     if (prop === "COMPLAINT_STATUSES") return COMPLAINT_STATUSES;
+    if (prop === "SLA_DAYS") return SLA_DAYS;
     if (prop === "schema") return complaintSchema;
 
     const model = getComplaintModel();
