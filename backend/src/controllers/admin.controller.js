@@ -191,24 +191,65 @@ const approveAuthorityRequest = async (req, res) => {
     }
     await officer.save();
 
-    // Auto-link any previously unassigned complaints in this department matching this officer's designation
+    // Auto-link any previously unassigned complaints in this department matching this officer's designation.
+    // This also covers complaints filed when no officer existed yet (empty department / assignedDesignation).
     try {
-      const matchCriteria = {
-        department: officer.department,
+      const { DEPARTMENT_TO_CATEGORIES, getLowestRankDesignation, getLowestRankNumber } = require("../utils/hierarchy.utils.js");
+
+      // Determine categories handled by this officer's department
+      const handledCategories = DEPARTMENT_TO_CATEGORIES[officer.department] || [];
+
+      // Compute the officer's effective rank
+      const officerRank = officer.rank && officer.rank !== 999
+        ? officer.rank
+        : getRankForDesignation(officer.department, officer.designation);
+
+      // Determine the lowest rank number for this department to check if this officer IS the lowest
+      const lowestRankNumber = getLowestRankNumber(officer.department);
+      const lowestDesignation = getLowestRankDesignation(officer.department);
+      const isLowestRank = officerRank === lowestRankNumber;
+
+      // Build the $or conditions for matching unassigned complaints that should route to this officer:
+      // 1. Complaints already tagged with this officer's designation (normal case)
+      // 2. Complaints with empty/no department field AND category belonging to this officer's department
+      //    (filed when no officer was approved yet — fallback routing)
+      // 3. If this officer IS the lowest rank in the department, also pick up complaints assigned to
+      //    the canonical lowest designation
+      const orConditions = [
+        // Previously matched by designation
+        { assignedDesignation: officer.designation },
+        // Complaints with no department (filed before any officer existed) whose category maps to this dept
+        ...(handledCategories.length > 0
+          ? [{ department: { $in: ["", null] }, category: { $in: handledCategories } }]
+          : []),
+      ];
+
+      if (isLowestRank && lowestDesignation && lowestDesignation !== officer.designation) {
+        orConditions.push({ assignedDesignation: lowestDesignation });
+      }
+
+      // Restrict to unassigned complaints in this department (or with empty department for fallback)
+      const baseMatch = {
         assignedTo: null,
+        $or: orConditions,
       };
-      if (officer.designation) {
-        matchCriteria.assignedDesignation = officer.designation;
-      }
+
       if (officer.category && officer.category !== "All") {
-        matchCriteria.category = officer.category;
+        baseMatch.category = officer.category;
       }
-      await Complaint.updateMany(matchCriteria, {
+
+      // Unset-department complaints: update department + designation + rank + assignedTo
+      const unsetDeptUpdate = {
         $set: {
           assignedTo: officer._id,
+          assignedDesignation: officer.designation,
+          assignedRank: officerRank,
+          department: officer.department,
           status: "Assigned",
         },
-      });
+      };
+
+      await Complaint.updateMany(baseMatch, unsetDeptUpdate);
     } catch (e) {
       console.warn("Auto-assignment on officer approval warning:", e.message);
     }

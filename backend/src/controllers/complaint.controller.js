@@ -78,6 +78,39 @@ async function createComplaint(req, res, next) {
     const { category, title, description, isAnonymous, autoCategorize } = req.body;
     const files = req.files || [];
 
+    const trimmedTitle = (title || "").trim();
+
+    // 1. Check for duplicate complaint title by the same user (case-insensitive)
+    const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const existingDuplicate = await Complaint.findOne({
+      userId,
+      title: { $regex: new RegExp(`^${escapeRegex(trimmedTitle)}$`, "i") },
+    });
+
+    if (existingDuplicate) {
+      return res.status(409).json({
+        success: false,
+        message: "A complaint with this title has already been submitted by you. Duplicate complaints are not allowed.",
+      });
+    }
+
+    // 2. Enforce daily complaint limit (maximum 10 complaints per day per user account)
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const complaintsToday = await Complaint.countDocuments({
+      userId,
+      createdAt: { $gte: startOfDay },
+    });
+
+    const DAILY_COMPLAINT_LIMIT = 10;
+    if (complaintsToday >= DAILY_COMPLAINT_LIMIT) {
+      return res.status(429).json({
+        success: false,
+        message: `Daily complaint limit reached. You cannot submit more than ${DAILY_COMPLAINT_LIMIT} complaints in a day.`,
+      });
+    }
+
     // Automatically determine category using ML Service if requested or defaulted to 'Auto'
     let resolvedCategory = category;
     if (autoCategorize || resolvedCategory === "Auto") {
@@ -526,9 +559,19 @@ async function getAssignedComplaints(req, res, next) {
           : getRankForDesignation(officerDept, officerDesignation);
       const officerCategory = user.category || "";
 
+      // Determine the lowest rank number for this department
+      const lowestRankNum = getLowestRankNumber(officerDept);
+      const isLowestRankOfficer = officerRank === lowestRankNum;
+
+      // Determine which complaint categories this officer's department handles
+      const { DEPARTMENT_TO_CATEGORIES } = require("../utils/hierarchy.utils.js");
+      const handledCategories = DEPARTMENT_TO_CATEGORIES[officerDept] || [];
+
       // Visibility Rule: Grievances routed to the lowest rank authority are visible to:
       // 1. The officer specifically assigned (assignedTo === user._id)
       // 2. An officer of that department holding the assigned lowest-rank designation
+      // 3. Complaints that have no department set (filed before any officer was approved)
+      //    whose category maps to this officer's department — only visible to lowest rank officer
       // Higher rank officers will NOT see grievances routed to lower rank desks!
       const visibilityConditions = [{ assignedTo: user._id }];
 
@@ -546,11 +589,26 @@ async function getAssignedComplaints(req, res, next) {
         });
       }
 
-      query.$and = [{ department: officerDept }, { $or: visibilityConditions }];
+      // Also surface unrouted complaints (department empty/null) whose category belongs
+      // to this officer's department — only the lowest-rank officer should see these.
+      if (isLowestRankOfficer && handledCategories.length > 0) {
+        const unroutedCategoryFilter = officerCategory && officerCategory !== "All"
+          ? [officerCategory]
+          : handledCategories;
 
-      // If officer is assigned to a specific category
+        visibilityConditions.push({
+          department: { $in: ["", null] },
+          assignedTo: null,
+          category: { $in: unroutedCategoryFilter },
+        });
+      }
+
+      // The outer $or covers either normal department-matched OR unrouted complaints
+      query.$or = visibilityConditions;
+
+      // If officer is assigned to a specific category, restrict further
       if (officerCategory && officerCategory !== "All") {
-        query.$and.push({ category: officerCategory });
+        query.category = officerCategory;
       }
     } else {
       return res.status(403).json({
