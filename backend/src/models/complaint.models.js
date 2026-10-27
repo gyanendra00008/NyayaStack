@@ -158,6 +158,8 @@ const complaintSchema = new mongoose.Schema(
   }
 );
 
+complaintSchema.index({ userId: 1, createdAt: -1 });
+
 /**
  * Returns the Complaint model registered strictly on the storage connection.
  * Avoids registering the model on the primary authentication database.
