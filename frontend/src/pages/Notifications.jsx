@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import anonymousAvatar from '../assets/anonymous-avatar.svg';
 
+const isOfficer = localStorage.getItem('nyaya_user_role') === 'officer' || localStorage.getItem('nyaya_user_role') === 'admin';
+
 const PetitionDetails = () => {
   const [slaSeconds, setSlaSeconds] = useState(5025);
   const [chatInput, setChatInput] = useState('');
@@ -110,9 +112,11 @@ const PetitionDetails = () => {
             <Link to="/dashboard" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
               <i className="fa-solid fa-house w-4"></i> Dashboard
             </Link>
-            <Link to="/file-complaint" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-file-circle-plus w-4 text-[#6B1724]"></i> File a Complaint
-            </Link>
+            {!isOfficer && (
+              <Link to="/file-complaint" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
+                <i className="fa-solid fa-file-circle-plus w-4 text-[#6B1724]"></i> File a Complaint
+              </Link>
+            )}
             <Link to="/my-petitions" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
               <i className="fa-solid fa-folder-open w-4"></i> My Petitions
             </Link>

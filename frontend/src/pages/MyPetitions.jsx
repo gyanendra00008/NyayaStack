@@ -93,7 +93,7 @@ const MyPetitions = () => {
           </Link>
           <nav className="p-4 space-y-1 text-xs font-semibold flex-1 overflow-y-auto">
             <Link to="/dashboard" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60"><i className="fa-solid fa-house w-4"></i> Dashboard</Link>
-            <Link to="/file-complaint" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60"><i className="fa-solid fa-file-circle-plus w-4"></i> File a Complaint</Link>
+            {!isOfficer && <Link to="/file-complaint" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60"><i className="fa-solid fa-file-circle-plus w-4"></i> File a Complaint</Link>}
             <Link to="/my-petitions" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#6B1724] text-white shadow-sm"><i className="fa-solid fa-folder-open w-4"></i> My Petitions</Link>
             <Link to="/petition-detail" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60"><i className="fa-solid fa-comments w-4"></i> Inquiry Chat</Link>
             <Link to="/notifications" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60"><i className="fa-solid fa-bell w-4"></i> Notifications</Link>
@@ -113,9 +113,11 @@ const MyPetitions = () => {
       <main className="flex-1 h-screen flex flex-col overflow-hidden bg-[#FAF7F2] w-full">
         <header className="h-16 bg-white border-b border-stone-200/80 px-8 flex items-center justify-between shrink-0 shadow-sm w-full">
           <div><h1 className="text-lg font-bold">My Petitions</h1><p className="text-xs text-stone-500">All grievances you have filed and their current status</p></div>
-          <Link to="/file-complaint" className="px-4 py-2 bg-[#6B1724] hover:bg-[#54121C] text-white rounded-xl text-xs font-semibold shadow transition flex items-center gap-1.5">
-            <i className="fa-solid fa-plus text-[10px]"></i> File New Petition
-          </Link>
+          {!isOfficer && (
+            <Link to="/file-complaint" className="px-4 py-2 bg-[#6B1724] hover:bg-[#54121C] text-white rounded-xl text-xs font-semibold shadow transition flex items-center gap-1.5">
+              <i className="fa-solid fa-plus text-[10px]"></i> File New Petition
+            </Link>
+          )}
         </header>
 
         <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-5">
@@ -235,7 +237,7 @@ const MyPetitions = () => {
                               ? 'You have not submitted any complaints yet.'
                               : `No complaints with status "${filter}".`}
                           </p>
-                          {filter === 'All' && (
+                          {filter === 'All' && !isOfficer && (
                             <Link
                               to="/file-complaint"
                               className="mt-2 px-4 py-2 bg-[#6B1724] hover:bg-[#54121C] text-white rounded-xl text-xs font-semibold shadow transition inline-flex items-center gap-1.5"
