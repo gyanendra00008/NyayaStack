@@ -1,5 +1,14 @@
 const crypto = require("crypto");
 const mongoose = require("mongoose");
+
+/**
+ * Derives the chainId for a given root complaintId.
+ * The chainId is the SHA-256 hex digest of the root complaintId string.
+ * This provides a collision-resistant, deterministic chain identifier.
+ */
+function deriveChainId(rootComplaintId) {
+  return crypto.createHash("sha256").update(rootComplaintId).digest("hex");
+}
 const Complaint = require("../models/complaint.models.js");
 const { COMPLAINT_CATEGORIES, COMPLAINT_STATUSES } = require("../models/complaint.models.js");
 const UserModel = require("../models/auth.models.js");
@@ -75,7 +84,7 @@ async function createComplaint(req, res, next) {
       });
     }
 
-    const { category, title, description, isAnonymous, autoCategorize } = req.body;
+    const { category, title, description, isAnonymous, autoCategorize, parentComplaintId } = req.body;
     const files = req.files || [];
 
     const trimmedTitle = (title || "").trim();
@@ -109,6 +118,48 @@ async function createComplaint(req, res, next) {
         success: false,
         message: `Daily complaint limit reached. You cannot submit more than ${DAILY_COMPLAINT_LIMIT} complaints in a day.`,
       });
+    }
+
+    // 3. Resolve hash-chain linkage if parentComplaintId is provided
+    let chainId = null;
+    let chainRoot = null;
+    let resolvedParentComplaintId = null;
+
+    if (parentComplaintId && typeof parentComplaintId === "string" && parentComplaintId.trim()) {
+      const parentIdTrimmed = parentComplaintId.trim();
+
+      // Parent complaint must exist and belong to the same user
+      const parentComplaint = await Complaint.findOne({ complaintId: parentIdTrimmed }).lean();
+      if (!parentComplaint) {
+        return res.status(404).json({
+          success: false,
+          message: `Parent complaint '${parentIdTrimmed}' not found. You can only link to your own existing complaints.`,
+        });
+      }
+
+      if (parentComplaint.userId.toString() !== userId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only link a complaint to another complaint submitted by you.",
+        });
+      }
+
+      // Determine the chain root and chainId
+      if (parentComplaint.chainRoot) {
+        // Parent is already part of a chain — inherit its chain root
+        chainRoot = parentComplaint.chainRoot;
+      } else {
+        // Parent is a standalone root — it now becomes the root of a new chain.
+        // Assign the parent its own chainId & chainRoot so the chain is consistent.
+        chainRoot = parentIdTrimmed;
+        const parentChainId = deriveChainId(chainRoot);
+        await Complaint.updateOne(
+          { complaintId: parentIdTrimmed },
+          { $set: { chainId: parentChainId, chainRoot: parentIdTrimmed } }
+        );
+      }
+      chainId = deriveChainId(chainRoot);
+      resolvedParentComplaintId = parentIdTrimmed;
     }
 
     // Automatically determine category using ML Service if requested or defaulted to 'Auto'
@@ -171,6 +222,10 @@ async function createComplaint(req, res, next) {
           attachments: uploadedAttachments,
           status: initialStatus,
           isAnonymous: Boolean(isAnonymous),
+          // Hash-chain fields
+          parentComplaintId: resolvedParentComplaintId || null,
+          chainId: chainId || null,
+          chainRoot: chainRoot || null,
         });
 
         break; // Successfully saved
@@ -207,6 +262,9 @@ async function createComplaint(req, res, next) {
         status: savedComplaint.status,
         isAnonymous: savedComplaint.isAnonymous,
         attachments: savedComplaint.attachments,
+        parentComplaintId: savedComplaint.parentComplaintId || null,
+        chainId: savedComplaint.chainId || null,
+        chainRoot: savedComplaint.chainRoot || null,
         createdAt: savedComplaint.createdAt,
         updatedAt: savedComplaint.updatedAt,
       },
@@ -245,7 +303,7 @@ async function getMyComplaints(req, res, next) {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .select("complaintId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank createdAt updatedAt -_id")
+        .select("complaintId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank parentComplaintId chainId chainRoot createdAt updatedAt -_id")
         .lean(),
     ]);
 
@@ -738,13 +796,158 @@ async function updateComplaintStatus(req, res, next) {
     }
     await complaint.save();
 
+    // ── Hash-Chain Cascade Resolution ────────────────────────────────────────
+    // If the resolved status is 'Resolved', automatically resolve all complaints
+    // sharing the same chainId (i.e., every complaint in the same chain).
+    let chainResolvedCount = 0;
+    if (status === "Resolved" && complaint.chainId) {
+      try {
+        const chainUpdateResult = await Complaint.updateMany(
+          { chainId: complaint.chainId, status: { $ne: "Resolved" } },
+          { $set: { status: "Resolved" } }
+        );
+        chainResolvedCount = chainUpdateResult.modifiedCount || 0;
+      } catch (chainErr) {
+        // Non-fatal: log and continue
+        console.warn("Hash-chain cascade resolution warning:", chainErr.message);
+      }
+    }
+
     return res.status(200).json({
       success: true,
-      message: `Complaint status updated to '${status}' successfully`,
+      message: `Complaint status updated to '${status}' successfully${chainResolvedCount > 0 ? `. ${chainResolvedCount} linked complaint(s) in the chain were also resolved.` : ""}`,
       data: {
         complaintId: complaint.complaintId,
         status: complaint.status,
+        chainId: complaint.chainId || null,
+        chainResolvedCount,
         updatedAt: complaint.updatedAt,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Controller: GET /api/complaints/:complaintId/chain
+ * Returns all complaints belonging to the same hash-chain as the given complaintId.
+ * Accessible by the owner of the root complaint, or admin/officer.
+ */
+async function getComplaintChain(req, res, next) {
+  try {
+    const { complaintId } = req.params;
+    const userId = req.user?._id || req.user?.id;
+    const userRole = req.user?.role;
+
+    const complaint = await Complaint.findOne({ complaintId }).lean();
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: `Complaint '${complaintId}' not found`,
+      });
+    }
+
+    // Must be part of a chain
+    if (!complaint.chainId) {
+      return res.status(200).json({
+        success: true,
+        message: "This complaint is not part of any chain",
+        data: [complaint],
+        chainId: null,
+        chainRoot: null,
+      });
+    }
+
+    // Access: owner, admin, or approved officer
+    const isOwner = complaint.userId?.toString() === userId?.toString();
+    const isAdmin = userRole === "admin";
+    const isApprovedOfficer = userRole === "officer" && req.user?.verificationStatus === "approved";
+
+    if (!isOwner && !isAdmin && !isApprovedOfficer) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to view this complaint chain",
+      });
+    }
+
+    const chainComplaints = await Complaint.find({ chainId: complaint.chainId })
+      .sort({ createdAt: 1 })
+      .select("complaintId category department priority title description status isAnonymous assignedTo assignedDesignation parentComplaintId chainId chainRoot createdAt updatedAt -_id")
+      .lean();
+
+    const populated = await populateOfficers(chainComplaints);
+
+    return res.status(200).json({
+      success: true,
+      data: populated,
+      chainId: complaint.chainId,
+      chainRoot: complaint.chainRoot,
+      total: populated.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Controller: PATCH /api/complaints/:complaintId/resolve-chain
+ * Admin/Officer endpoint: resolves ALL complaints in the chain associated with this complaint.
+ */
+async function resolveComplaintChain(req, res, next) {
+  try {
+    const { complaintId } = req.params;
+    const userRole = req.user?.role;
+    const userId = req.user?._id;
+
+    const complaint = await Complaint.findOne({ complaintId });
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: `Complaint '${complaintId}' not found`,
+      });
+    }
+
+    // Access: admin or approved officer assigned to this complaint
+    const isAdmin = userRole === "admin";
+    const isAssignedOfficer =
+      userRole === "officer" &&
+      req.user?.verificationStatus === "approved" &&
+      (complaint.assignedTo?.toString() === userId?.toString() ||
+        (complaint.department === req.user?.department &&
+          (complaint.assignedDesignation === req.user?.designation ||
+            complaint.assignedRank === req.user?.rank)));
+
+    if (!isAdmin && !isAssignedOfficer) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to resolve this complaint chain",
+      });
+    }
+
+    if (!complaint.chainId) {
+      // Standalone complaint — just resolve this one
+      complaint.status = "Resolved";
+      await complaint.save();
+      return res.status(200).json({
+        success: true,
+        message: "Complaint resolved successfully (standalone, not part of a chain)",
+        data: { complaintId: complaint.complaintId, status: "Resolved", chainResolvedCount: 1 },
+      });
+    }
+
+    const result = await Complaint.updateMany(
+      { chainId: complaint.chainId },
+      { $set: { status: "Resolved" } }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Entire hash-chain resolved. ${result.modifiedCount} complaint(s) marked as Resolved.`,
+      data: {
+        chainId: complaint.chainId,
+        chainRoot: complaint.chainRoot,
+        chainResolvedCount: result.modifiedCount,
       },
     });
   } catch (error) {
@@ -757,6 +960,8 @@ module.exports = {
   getMyComplaints,
   getAssignedComplaints,
   updateComplaintStatus,
+  getComplaintChain,
+  resolveComplaintChain,
   predictComplaintCategory,
   getCategories,
   getComplaintById,

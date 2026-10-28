@@ -87,8 +87,22 @@ export default function OfficerDashboard() {
 
   const handleQuickStatusChange = async (complaintId, nextStatus) => {
     try {
+      // Find the complaint object to check if it's in a hash-chain
+      const targetComplaint = complaints.find((c) => c.complaintId === complaintId);
+      if (nextStatus === "Resolved" && targetComplaint?.chainId) {
+        const confirmAll = window.confirm(
+          `This complaint is part of a linked Hash Chain (Root: ${targetComplaint.chainRoot || targetComplaint.complaintId}).\n\nMarking it as Resolved will automatically resolve ALL linked complaints in this chain.\n\nDo you want to proceed?`
+        );
+        if (!confirmAll) return;
+      }
+
       setUpdatingId(complaintId);
-      await complaintApi.updateComplaintStatus(complaintId, { status: nextStatus });
+      const res = await complaintApi.updateComplaintStatus(complaintId, { status: nextStatus });
+      if (res.data?.data?.chainResolvedCount > 0) {
+        alert(
+          `Success: Marked as Resolved! ${res.data.data.chainResolvedCount} linked complaint(s) in this Hash Chain were also automatically resolved.`
+        );
+      }
       await loadData();
     } catch (err) {
       alert(
@@ -182,12 +196,6 @@ export default function OfficerDashboard() {
               </Link>
             )}
             <Link
-              to="/my-petitions"
-              className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition"
-            >
-              <i className="fa-solid fa-list-check w-4"></i> Assigned Petitions
-            </Link>
-            <Link
               to="/ledger"
               className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition"
             >
@@ -200,15 +208,6 @@ export default function OfficerDashboard() {
             >
               <i className="fa-solid fa-chart-column w-4"></i> Analytics & Trends
             </Link>
-            <div className="pt-3 border-t border-stone-200/60 mt-3">
-              <Link
-                to="/dashboard"
-                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-emerald-900 bg-emerald-100/50 hover:bg-emerald-100 transition text-[11px]"
-              >
-                <i className="fa-solid fa-user-graduate w-4 text-emerald-700"></i>{" "}
-                Switch to Student View
-              </Link>
-            </div>
           </nav>
         </div>
         <div className="p-4 border-t border-stone-200/80 flex items-center justify-between bg-[#F0E8DC]">
@@ -456,7 +455,14 @@ export default function OfficerDashboard() {
                     filteredComplaints.map((c) => (
                       <tr key={c.complaintId} className="hover:bg-stone-50 transition">
                         <td className="py-3 px-3 font-mono font-bold text-[#6B1724]">
-                          {c.complaintId}
+                          <div className="flex flex-col">
+                            <span>{c.complaintId}</span>
+                            {c.chainId && (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-sans font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded w-fit mt-0.5" title={`Chained: Root is ${c.chainRoot || c.complaintId}`}>
+                                <i className="fa-solid fa-link text-[8px]"></i> Chained
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 px-3">
                           <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200 font-semibold text-[10px]">

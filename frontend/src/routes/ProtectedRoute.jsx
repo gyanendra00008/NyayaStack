@@ -25,13 +25,19 @@ export default function ProtectedRoute({ children, roleRequired = null, redirect
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
-  // If a role is required (e.g. 'officer' or 'admin')
-  if (roleRequired) {
-    const userRole =
-      reduxUser?.role ||
-      localStorage.getItem('nyaya_user_role') ||
-      (localStorage.getItem('authorityToken') || sessionStorage.getItem('authorityToken') ? 'officer' : null);
+  const userRole =
+    reduxUser?.role ||
+    localStorage.getItem('nyaya_user_role') ||
+    (localStorage.getItem('authorityToken') || sessionStorage.getItem('authorityToken') ? 'officer' : 'user');
 
+  // Strict role separation:
+  // If roleRequired is 'user' (student) and current user is officer/admin, redirect to officer dashboard
+  if (roleRequired === 'user' && (userRole === 'officer' || userRole === 'admin')) {
+    return <Navigate to={userRole === 'admin' ? '/admin/dashboard' : '/officerdash'} replace />;
+  }
+
+  // If a role is required (e.g. 'officer' or 'admin')
+  if (roleRequired && roleRequired !== 'user') {
     // If user lacks the required role and is not an admin
     if (!userRole || (userRole !== roleRequired && userRole !== 'admin')) {
       return <Navigate to={redirectTo} state={{ from: location, roleMismatch: true }} replace />;

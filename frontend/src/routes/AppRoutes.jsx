@@ -42,11 +42,11 @@ export default function AppRoutes() {
       <Route path="/transparency" element={<PublicTransparency />} />
       <Route path="/ledger" element={<AuditLedger />} />
 
-      {/* Protected Student / User Pages (Redirects unauthenticated visitors to /login) */}
+      {/* Protected Student / User Pages (Redirects unauthenticated visitors to /login; Officers cannot access) */}
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute roleRequired="user">
             <UserDashboard />
           </ProtectedRoute>
         }
@@ -54,7 +54,7 @@ export default function AppRoutes() {
       <Route
         path="/file-complaint"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute roleRequired="user">
             <FileComplaint />
           </ProtectedRoute>
         }
@@ -62,7 +62,7 @@ export default function AppRoutes() {
       <Route
         path="/upload-complaint"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute roleRequired="user">
             <FileComplaint />
           </ProtectedRoute>
         }
@@ -70,7 +70,7 @@ export default function AppRoutes() {
       <Route
         path="/file-petition"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute roleRequired="user">
             <FileComplaint />
           </ProtectedRoute>
         }
@@ -78,7 +78,7 @@ export default function AppRoutes() {
       <Route
         path="/new-petition"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute roleRequired="user">
             <FileComplaint />
           </ProtectedRoute>
         }
@@ -86,7 +86,7 @@ export default function AppRoutes() {
       <Route
         path="/my-petitions"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute roleRequired="user">
             <MyPetitions />
           </ProtectedRoute>
         }
@@ -102,7 +102,7 @@ export default function AppRoutes() {
       <Route
         path="/notifications"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute roleRequired="user">
             <Notifications />
           </ProtectedRoute>
         }
