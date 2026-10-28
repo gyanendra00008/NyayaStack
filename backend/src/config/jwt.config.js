@@ -19,14 +19,18 @@ const JWT_CONFIG = {
 };
 
 const isProduction = process.env.NODE_ENV === 'production';
+const cookieSameSite = process.env.COOKIE_SAME_SITE || (isProduction ? 'none' : 'lax');
+const cookieSecure = process.env.COOKIE_SECURE !== undefined
+  ? process.env.COOKIE_SECURE === 'true'
+  : isProduction;
 
 /**
  * Generates secure cookie options for session auth tokens
  */
 const getAuthCookieOptions = () => ({
   httpOnly: true,
-  secure: isProduction,
-  sameSite: isProduction ? 'strict' : 'lax',
+  secure: cookieSecure,
+  sameSite: cookieSameSite,
   maxAge: 24 * 60 * 60 * 1000, // 24 hours (aligned with JWT expiration)
   path: '/',
 });
@@ -36,8 +40,8 @@ const getAuthCookieOptions = () => ({
  */
 const getResetCookieOptions = () => ({
   httpOnly: true,
-  secure: isProduction,
-  sameSite: isProduction ? 'strict' : 'lax',
+  secure: cookieSecure,
+  sameSite: cookieSameSite,
   maxAge: 15 * 60 * 1000, // 15 minutes
   path: '/',
 });
@@ -47,8 +51,8 @@ const getResetCookieOptions = () => ({
  */
 const getClearCookieOptions = () => ({
   httpOnly: true,
-  secure: isProduction,
-  sameSite: isProduction ? 'strict' : 'lax',
+  secure: cookieSecure,
+  sameSite: cookieSameSite,
   path: '/',
 });
 

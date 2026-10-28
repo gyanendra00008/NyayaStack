@@ -1,8 +1,9 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import MobileNavToggle from "../components/MobileNavToggle";
 
 export default function AuditLedger() {
+  const isOfficer = localStorage.getItem('nyaya_user_role') === 'officer' || localStorage.getItem('nyaya_user_role') === 'admin';
   const [verifyText, setVerifyText] = useState("Verify Chain");
   const [verifying, setVerifying] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
@@ -37,7 +38,7 @@ export default function AuditLedger() {
           </Link>
           <nav className="p-4 space-y-1 text-sm font-semibold">
             <Link to="/dashboard" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition"><i className="fa-solid fa-house w-4"></i> Dashboard</Link>
-            <Link to="/file-complaint" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition"><i className="fa-solid fa-file-circle-plus w-4 text-[#6B1724]"></i> File a Complaint</Link>
+            {!isOfficer && <Link to="/file-complaint" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition"><i className="fa-solid fa-file-circle-plus w-4 text-[#6B1724]"></i> File a Complaint</Link>}
             <Link to="/my-petitions" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition"><i className="fa-solid fa-folder-open w-4"></i> My Petitions</Link>
             <Link to="/petition-detail" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition"><i className="fa-solid fa-comments w-4"></i> Inquiry Chat</Link>
             <Link to="/ledger" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#6B1724] text-white shadow-sm"><i className="fa-solid fa-fingerprint w-4"></i> Audit Ledger</Link>

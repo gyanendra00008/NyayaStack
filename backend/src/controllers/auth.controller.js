@@ -10,6 +10,7 @@ const {
   isOtpExpired,
 } = require("../utils/otp.utils.js");
 const { sendOtpEmail, sendPasswordResetOtpEmail } = require("../services/mail.service.js");
+const { getRankForDesignation } = require("../utils/hierarchy.utils.js");
 const {
   JWT_CONFIG,
   getAuthCookieOptions,
@@ -27,7 +28,7 @@ const RESEND_COOLDOWN_MS = 60 * 1000; // 60 seconds
  */
 const registerUser = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, fullName, rollNo } = req.body;
 
     const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
@@ -41,6 +42,8 @@ const registerUser = async (req, res) => {
       userRecord = req.existingUnverifiedUser;
       userRecord.username = username;
       userRecord.password = hashedPassword;
+      if (fullName !== undefined) userRecord.fullName = fullName;
+      if (rollNo !== undefined) userRecord.rollNo = rollNo;
       // PREVENT PRIVILEGE ESCALATION: Never allow unverified retries to alter role
       userRecord.role = "user";
       userRecord.otp = hashedOtp;
@@ -52,6 +55,8 @@ const registerUser = async (req, res) => {
       userRecord = await UserModel.create({
         username,
         email,
+        fullName: fullName || "",
+        rollNo: rollNo || "",
         password: hashedPassword,
         role: "user", // Strictly user role
         isVerified: false,
@@ -174,8 +179,15 @@ const verifyOtp = async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
+        fullName: user.fullName || "",
+        rollNo: user.rollNo || "",
+        department: user.department || "",
+        designation: user.designation || "",
+        category: user.category || "",
+        rank: user.rank || 999,
         role: user.role,
         isVerified: user.isVerified,
+        verificationStatus: user.verificationStatus || "none",
       },
     });
   } catch (error) {
@@ -283,8 +295,15 @@ const login = async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
+        fullName: user.fullName || "",
+        rollNo: user.rollNo || "",
+        department: user.department || "",
+        designation: user.designation || "",
+        category: user.category || "",
+        rank: user.rank || 999,
         role: user.role,
         isVerified: user.isVerified,
+        verificationStatus: user.verificationStatus || "none",
       },
     });
   } catch (error) {
@@ -618,8 +637,15 @@ const getCurrentUser = async (req, res) => {
       id: req.user._id,
       username: req.user.username,
       email: req.user.email,
+      fullName: req.user.fullName || "",
+      rollNo: req.user.rollNo || "",
+      department: req.user.department || "",
+      designation: req.user.designation || "",
+      category: req.user.category || "",
+      rank: req.user.rank || 999,
       role: req.user.role,
       isVerified: req.user.isVerified,
+      verificationStatus: req.user.verificationStatus || "none",
     },
   });
 };
@@ -635,8 +661,107 @@ const adminDashboard = async (req, res) => {
   });
 };
 
+/**
+ * Authority / Officer Registration Request
+ * Creates an unverified authority account with pending status
+ * strictly pending review and approval by institutional administrator.
+ */
+const registerAuthority = async (req, res) => {
+  try {
+    const { name, email, employeeId, department, designation, category, password } = req.body;
+
+    if (!email || !password || (!employeeId && !name)) {
+      return res.status(400).json({
+        success: false,
+        message: "Official email, password, and employee ID or name are required",
+      });
+    }
+
+    if (typeof password !== "string" || password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters long",
+      });
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    const safeUsername = (employeeId || name || trimmedEmail.split("@")[0])
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_.-]/g, "_")
+      .slice(0, 30);
+
+    const existing = await UserModel.findOne({
+      $or: [{ email: trimmedEmail }, { username: safeUsername }],
+    });
+
+    if (existing && existing.isVerified && existing.verificationStatus === "approved") {
+      return res.status(409).json({
+        success: false,
+        message: "An active account already exists with this official email or employee ID",
+      });
+    }
+
+    if (existing && existing.role === "officer" && existing.verificationStatus === "pending") {
+      return res.status(409).json({
+        success: false,
+        message: "An authority access request with this official email is already pending review.",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+    const calculatedRank = getRankForDesignation(department, designation);
+
+    if (existing && (!existing.isVerified || existing.verificationStatus === "rejected")) {
+      existing.password = hashedPassword;
+      // Backend strictly forces role to 'officer' and verificationStatus to 'pending'
+      existing.role = "officer";
+      existing.verificationStatus = "pending";
+      existing.isVerified = false;
+      existing.fullName = (name || safeUsername).trim();
+      existing.rollNo = (employeeId || "").trim();
+      existing.department = (department || "").trim();
+      existing.designation = (designation || "").trim();
+      existing.category = (category || "").trim();
+      existing.rank = calculatedRank;
+      existing.rejectionReason = "";
+      existing.reviewedBy = null;
+      existing.reviewedAt = null;
+      await existing.save();
+    } else {
+      // Backend strictly enforces initial role and verification status
+      await UserModel.create({
+        username: safeUsername,
+        email: trimmedEmail,
+        fullName: (name || safeUsername).trim(),
+        rollNo: (employeeId || "").trim(),
+        department: (department || "").trim(),
+        designation: (designation || "").trim(),
+        category: (category || "").trim(),
+        rank: calculatedRank,
+        password: hashedPassword,
+        role: "officer",
+        verificationStatus: "pending",
+        isVerified: false,
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Authority access request submitted successfully. Pending institutional administrator review.",
+    });
+  } catch (error) {
+    console.error("Error registering authority:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error during authority registration",
+    });
+  }
+};
+
 module.exports = {
   registerUser,
+  registerAuthority,
   login,
   verifyOtp,
   resendOtp,

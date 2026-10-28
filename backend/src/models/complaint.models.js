@@ -18,10 +18,12 @@ const COMPLAINT_CATEGORIES = [
 
 const COMPLAINT_STATUSES = [
   "Filed",
+  "Assigned",
   "In Review",
   "In Progress",
   "Resolved",
   "Rejected",
+  "Escalated",
 ];
 
 // SLA (in days) per category. Change values here as per college policy.
@@ -122,13 +124,35 @@ const complaintSchema = new mongoose.Schema(
       enum: COMPLAINT_STATUSES,
       default: "Filed",
     },
-    // SLA fields
-    slaDueAt: {
-      type: Date,
+    department: {
+      type: String,
+      trim: true,
+      default: "",
       index: true,
     },
-    resolvedAt: {
-      type: Date,
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+      index: true,
+    },
+    assignedDesignation: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    assignedRank: {
+      type: Number,
+      default: null,
+    },
+    priority: {
+      type: String,
+      trim: true,
+      default: "Medium (Standard SLA 48h)",
+    },
+    isAnonymous: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
   },
   {
@@ -150,27 +174,7 @@ const complaintSchema = new mongoose.Schema(
   }
 );
 
-// New complaint: set slaDueAt based on category
-complaintSchema.pre("validate", function (next) {
-  if (this.isNew && !this.slaDueAt) {
-    const days = SLA_DAYS[this.category] ?? 7;
-    this.slaDueAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
-  }
-  next();
-});
-
-// Status changed: set / clear resolvedAt
-// NOTE: works only with doc.save(), not findOneAndUpdate / updateOne
-complaintSchema.pre("save", function (next) {
-  if (!this.isNew && this.isModified("status")) {
-    if (this.status === "Resolved") {
-      this.resolvedAt = new Date();
-    } else {
-      this.resolvedAt = undefined; // reopened
-    }
-  }
-  next();
-});
+complaintSchema.index({ userId: 1, createdAt: -1 });
 
 /**
  * Returns the Complaint model registered strictly on the storage connection.

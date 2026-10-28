@@ -1,5 +1,8 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import anonymousAvatar from '../assets/anonymous-avatar.svg';
+
+const isOfficer = localStorage.getItem('nyaya_user_role') === 'officer' || localStorage.getItem('nyaya_user_role') === 'admin';
 
 const PetitionDetails = () => {
   const [slaSeconds, setSlaSeconds] = useState(5025);
@@ -109,9 +112,11 @@ const PetitionDetails = () => {
             <Link to="/dashboard" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
               <i className="fa-solid fa-house w-4"></i> Dashboard
             </Link>
-            <Link to="/file-complaint" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-file-circle-plus w-4 text-[#6B1724]"></i> File a Complaint
-            </Link>
+            {!isOfficer && (
+              <Link to="/file-complaint" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
+                <i className="fa-solid fa-file-circle-plus w-4 text-[#6B1724]"></i> File a Complaint
+              </Link>
+            )}
             <Link to="/my-petitions" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
               <i className="fa-solid fa-folder-open w-4"></i> My Petitions
             </Link>
@@ -138,7 +143,7 @@ const PetitionDetails = () => {
 
         <div className="p-4 border-t border-stone-200/80 flex items-center justify-between bg-[#F0E8DC]">
           <div className="flex items-center gap-2.5">
-            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-[#6B1724]" />
+            <img src={anonymousAvatar} alt="Unknown Identity" className="w-8 h-8 rounded-full object-cover border border-[#6B1724]" />
             <div>
               <p className="text-xs font-bold text-stone-800">User</p>
               <p className="text-[10px] text-stone-500 font-mono">Enter here</p>

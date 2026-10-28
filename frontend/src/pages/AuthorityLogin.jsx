@@ -1,5 +1,8 @@
-﻿import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
+import { setCredentials } from '../store/slices/authSlice'
+import { authApi } from '../services/api'
 import bg from '../assets/2ndbg.png'
 import logo from '../assets/logo.png'
 
@@ -18,12 +21,33 @@ function EyeIcon({ open }) {
 
 function AuthorityLogin() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const dispatch = useDispatch()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [remember, setRemember] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(
+    location.state?.roleMismatch
+      ? 'Authority or Administrator credentials are required to access this portal.'
+      : location.state?.notApproved
+      ? 'Your authority registration is awaiting administrator verification. Access is restricted until approved.'
+      : ''
+  )
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const token = localStorage.getItem('authorityToken') || localStorage.getItem('token')
+    const role = localStorage.getItem('nyaya_user_role')
+    const status = localStorage.getItem('nyaya_verification_status')
+    if (token) {
+      if (role === 'admin') {
+        navigate('/admin/dashboard', { replace: true })
+      } else if (role === 'officer' && (!status || status === 'approved')) {
+        navigate('/officerdash', { replace: true })
+      }
+    }
+  }, [navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -31,22 +55,46 @@ function AuthorityLogin() {
 
     try {
       setLoading(true)
-      const res = await fetch('http://localhost:3000/auth/authority/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier, password }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Login failed')
+      const res = await authApi.login({ identifier: identifier.trim(), password })
+      const { token, user } = res.data
 
-      // Token + role store karo (backend se { token } aata hai maan ke chal rahe hain)
+      // Role check: Only officer or admin accounts allowed
+      if (user?.role && user.role !== 'officer' && user.role !== 'admin') {
+        setError('Access Denied: Your account is registered as a student/standard user. Only authorized Officers and Admins can access the Authority Console.')
+        return
+      }
+
+      // Verification check: Only approved officers (or administrators) can proceed
+      if (user?.role === 'officer' && user.verificationStatus !== 'approved') {
+        const rejectionMsg = user.rejectionReason
+          ? `Your authority registration was rejected by the administrator. Reason: ${user.rejectionReason}`
+          : 'Your authority registration was rejected by the administrator.'
+        const pendingMsg = 'Your authority account is awaiting administrator review and approval. Access will be enabled once verified.'
+        setError(user.verificationStatus === 'rejected' ? rejectionMsg : pendingMsg)
+        return
+      }
+
       const storage = remember ? localStorage : sessionStorage
-      storage.setItem('authorityToken', data.token)
-      storage.setItem('role', 'authority')
+      storage.setItem('authorityToken', token)
+      localStorage.setItem('token', token)
+      if (user?.username) {
+        localStorage.setItem('nyaya_logged_user', user.username)
+        localStorage.setItem('nyaya_user_name', user.fullName || user.username)
+      }
+      if (user?.role) {
+        localStorage.setItem('nyaya_user_role', user.role)
+      }
+      if (user?.verificationStatus) {
+        localStorage.setItem('nyaya_verification_status', user.verificationStatus)
+      }
 
-      navigate('/officerdash')
+      dispatch(setCredentials({ user, token }))
+
+      const fallbackRoute = user?.role === 'admin' ? '/admin/dashboard' : '/officerdash'
+      const from = location.state?.from?.pathname || fallbackRoute
+      navigate(from, { replace: true })
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.message || err.message || 'Login failed. Please check your credentials.')
     } finally {
       setLoading(false)
     }

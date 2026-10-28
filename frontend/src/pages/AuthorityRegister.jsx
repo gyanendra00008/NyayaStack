@@ -1,28 +1,80 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { authApi } from "../services/api";
 import bg from "../assets/2ndbg.png";
 import logo from "../assets/logo.png";
 
-const DEPARTMENTS = [
-  "Academic Affairs",
-  "Hostel & Mess",
-  "Examination Cell",
-  "Anti-Ragging Committee",
-  "Internal Complaints Committee",
-  "Library",
-  "IT & Infrastructure",
-  "Administration",
-];
+export const DEPARTMENT_DESIGNATIONS = {
+  "Academic Affairs": [
+    "Dean (Academic Affairs)",
+    "Head of Department (HOD)",
+    "Faculty Coordinator",
+    "Academic Counselor",
+    "Program Coordinator",
+  ],
+  "Hostel & Mess": [
+    "Chief Warden",
+    "Warden",
+    "Assistant Warden",
+    "Hostel Supervisor",
+    "Mess Committee In-Charge",
+    "Caretaker",
+  ],
+  "Examination Cell": [
+    "Controller of Examinations (COE)",
+    "Assistant Controller of Examinations",
+    "Examination Superintendent",
+    "Evaluation Coordinator",
+    "Administrative Officer",
+  ],
+  "Anti-Ragging Committee": [
+    "Committee Chairperson",
+    "Committee Member",
+    "Squad In-Charge",
+    "Faculty Representative",
+  ],
+  "Internal Complaints Committee": [
+    "Presiding Officer",
+    "Committee Member",
+    "Legal Advisor",
+    "Faculty Representative",
+    "Counselor",
+  ],
+  "Library": [
+    "Chief Librarian",
+    "Assistant Librarian",
+    "Information Officer",
+    "Library Assistant",
+  ],
+  "IT & Infrastructure": [
+    "IT Head / CTO",
+    "System Administrator",
+    "Network Engineer",
+    "Estate / Works Officer",
+    "Maintenance Supervisor",
+  ],
+  "Administration": [
+    "Registrar",
+    "Deputy Registrar",
+    "Assistant Registrar",
+    "Administrative Officer",
+    "Section Officer",
+    "Grievance Redressal Officer",
+  ],
+};
 
-const DESIGNATIONS = [
-  "Warden",
-  "Faculty Coordinator",
-  "Head of Department",
-  "Registrar",
-  "Dean",
-  "Committee Member",
-  "Administrative Officer",
-];
+export const DEPARTMENT_CATEGORIES = {
+  "Hostel & Mess": ["Hostel", "Mess"],
+  "Academic Affairs": ["Academic"],
+  "Examination Cell": ["Academic"],
+  "Anti-Ragging Committee": ["Ragging"],
+  "Internal Complaints Committee": ["Harassment"],
+  "Library": ["Academic", "Infrastructure", "Other"],
+  "IT & Infrastructure": ["Infrastructure"],
+  "Administration": ["Administration", "Finance", "Discipline", "Transport", "Medical", "Other"],
+};
+
+const DEPARTMENTS = Object.keys(DEPARTMENT_DESIGNATIONS);
 
 function AuthorityRegister() {
   const [showPassword, setShowPassword] = useState(false);
@@ -35,13 +87,34 @@ function AuthorityRegister() {
     employeeId: "",
     department: "",
     designation: "",
+    category: "",
     password: "",
     confirmPassword: "",
   });
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === "department") {
+      setForm((prev) => ({
+        ...prev,
+        department: value,
+        category: "",
+        designation: DEPARTMENT_DESIGNATIONS[value]?.includes(prev.designation)
+          ? prev.designation
+          : "",
+      }));
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }));
+    }
   };
+
+  const availableDesignations = form.department
+    ? DEPARTMENT_DESIGNATIONS[form.department] || []
+    : [];
+
+  const availableCategories = form.department
+    ? DEPARTMENT_CATEGORIES[form.department] || []
+    : [];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -56,23 +129,18 @@ function AuthorityRegister() {
 
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:3000/auth/authority/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          employeeId: form.employeeId,
-          department: form.department,
-          designation: form.designation,
-          password: form.password,
-        }),
+      await authApi.registerAuthority({
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        employeeId: form.employeeId.trim(),
+        department: form.department,
+        designation: form.designation,
+        category: form.category || "",
+        password: form.password,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Registration failed");
       setSubmitted(true);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message || "Registration failed. Please check your details.");
     } finally {
       setLoading(false);
     }
@@ -107,18 +175,24 @@ function AuthorityRegister() {
         {submitted ? (
           /* Success state */
           <div className="text-center py-4">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-50 border border-green-200">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 border border-amber-200">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-[#2b2118]">Request submitted</h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Aapka account admin verify karega. Approval milne ke baad aap login kar sakte hain.
-            </p>
+            <h2 className="text-2xl font-bold text-[#2b2118]">Application Submitted</h2>
+            <div className="mt-2 text-sm text-gray-600 space-y-1">
+              <p className="font-semibold text-amber-800">Status: Pending Verification</p>
+              <p>
+                Your registration has been submitted and is currently awaiting manual review and approval by an institutional administrator.
+              </p>
+              <p className="text-xs text-stone-500 pt-1">
+                You will be able to access the Authority Console once your credentials have been verified and approved.
+              </p>
+            </div>
             <Link
-              to="/authority-login"
-              className="mt-6 inline-block w-full py-2.5 rounded-lg bg-[#7a1620] text-white font-semibold hover:bg-[#5e1019] transition"
+              to="/authority/login"
+              className="mt-6 inline-block w-full py-2.5 rounded-lg bg-[#7a1620] text-white font-semibold hover:bg-[#5e1019] transition shadow-xs"
             >
               Go to Authority Login
             </Link>
@@ -193,21 +267,75 @@ function AuthorityRegister() {
               </div>
 
               <div>
-                <label htmlFor="designation" className={labelClass}>Designation</label>
+                <label htmlFor="designation" className={labelClass}>
+                  Designation / Authority Rank {form.department && <span className="text-xs font-normal text-stone-500">({form.department})</span>}
+                </label>
                 <select
                   id="designation"
                   name="designation"
                   value={form.designation}
                   onChange={handleChange}
-                  className={inputClass}
+                  className={`${inputClass} ${!form.department ? "bg-stone-50 text-stone-400 cursor-not-allowed" : ""}`}
                   required
+                  disabled={!form.department}
                 >
-                  <option value="" disabled>Select designation</option>
-                  {DESIGNATIONS.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
+                  <option value="" disabled>
+                    {form.department ? "Select designation" : "Please select department first"}
+                  </option>
+                  {availableDesignations.map((d, idx) => {
+                    const isLowest = idx === availableDesignations.length - 1;
+                    const isHighest = idx === 0;
+                    const rankLabel = isLowest
+                      ? " (Lowest Rank - Initial Grievance Desk)"
+                      : isHighest
+                      ? " (Executive Head / Level 1)"
+                      : ` (Level ${idx + 1})`;
+                    return (
+                      <option key={d} value={d}>
+                        {d} {rankLabel}
+                      </option>
+                    );
+                  })}
                 </select>
+                {form.designation && (
+                  <p className="text-[11px] text-stone-500 mt-1">
+                    {availableDesignations.indexOf(form.designation) === availableDesignations.length - 1 ? (
+                      <span className="text-emerald-700 font-semibold">
+                        ★ Lowest-Rank Redressal Desk: User complaints in this department/category will be directly routed to this authority.
+                      </span>
+                    ) : (
+                      <span>
+                        Executive Oversight Level {availableDesignations.indexOf(form.designation) + 1}. Unresolved grievances escalate here from the lowest rank.
+                      </span>
+                    )}
+                  </p>
+                )}
               </div>
+
+              {availableCategories.length > 0 && (
+                <div>
+                  <label htmlFor="category" className={labelClass}>
+                    Grievance Category Focus <span className="text-xs font-normal text-stone-500">(Optional)</span>
+                  </label>
+                  <select
+                    id="category"
+                    name="category"
+                    value={form.category}
+                    onChange={handleChange}
+                    className={inputClass}
+                  >
+                    <option value="">All Department Categories (Default)</option>
+                    {availableCategories.map((c) => (
+                      <option key={c} value={c}>
+                        {c} Only
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-stone-500 mt-1">
+                    Route complaints across all department categories or restrict to a specific category.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label htmlFor="password" className={labelClass}>Password</label>

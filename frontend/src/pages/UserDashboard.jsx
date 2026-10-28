@@ -1,15 +1,25 @@
-﻿import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { logout } from '../store/slices/authSlice';
 import logo from '../assets/logo.png';
-import MobileNavToggle from '../components/MobileNavToggle';
+import anonymousAvatar from '../assets/anonymous-avatar.svg';
+import { complaintApi, authApi } from '../services/api';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 
 const UserDashboard = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [userName, setUserName] = useState('User');
-  const [userId, setUserId] = useState('22BCS045');
-  const [navOpen, setNavOpen] = useState(false);
+  const [userId, setUserId] = useState('');
+  const [stats, setStats] = useState({ total: 0, inReview: 0, resolved: 0, escalated: 0 });
+  const [recentPetitions, setRecentPetitions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   useEffect(() => {
     const savedName = localStorage.getItem('nyaya_user_name') || sessionStorage.getItem('nyaya_logged_user');
+    const savedRoll = localStorage.getItem('nyaya_user_roll');
     const savedId = localStorage.getItem('nyaya_logged_user') || sessionStorage.getItem('nyaya_logged_user');
 
     if (savedName) {
@@ -18,10 +28,62 @@ const UserDashboard = () => {
       cleanName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
       setUserName(cleanName);
     }
-    if (savedId) {
+    if (savedRoll) {
+      setUserId(savedRoll);
+    } else if (savedId) {
       setUserId(savedId);
     }
+
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (token) {
+      setLoading(true);
+      // Synchronize live profile details
+      authApi.getMe().then((res) => {
+        if (res.data?.user) {
+          const u = res.data.user;
+          if (u.fullName) setUserName(u.fullName);
+          if (u.rollNo) setUserId(u.rollNo);
+        }
+      }).catch(() => {});
+
+      complaintApi.getMyComplaints({ limit: 10 })
+        .then((res) => {
+          const list = Array.isArray(res.data?.data) ? res.data.data : [];
+          const inReview = list.filter((p) => p.status === 'In Review' || p.status === 'In Progress' || p.status === 'Filed' || p.status === 'Assigned').length;
+          const resolved = list.filter((p) => p.status === 'Resolved').length;
+          const escalated = list.filter((p) => p.status === 'Rejected' || p.status === 'Escalated').length;
+
+          setStats({
+            total: res.data?.pagination?.total ?? list.length,
+            inReview,
+            resolved,
+            escalated,
+          });
+
+          setRecentPetitions(list.slice(0, 5));
+        })
+        .catch(() => {
+          setStats({ total: 0, inReview: 0, resolved: 0, escalated: 0 });
+          setRecentPetitions([]);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
+    }
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('authorityToken');
+    localStorage.removeItem('nyaya_logged_user');
+    localStorage.removeItem('nyaya_user_name');
+    localStorage.removeItem('nyaya_user_role');
+    sessionStorage.clear();
+    dispatch(logout());
+    navigate('/login');
+  };
 
   return (
     <div className="text-stone-800 flex h-dvh w-full overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -53,7 +115,11 @@ const UserDashboard = () => {
             </Link>
             <Link to="/notifications" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
               <i className="fa-solid fa-bell w-4"></i> Notifications
-              <span className="ml-auto bg-rose-100 text-[#6B1724] px-1.5 py-0.5 rounded-full text-[10px] font-bold">4</span>
+              {stats.inReview > 0 && (
+                <span className="ml-auto bg-rose-100 text-[#6B1724] px-1.5 py-0.5 rounded-full text-[10px] font-bold">
+                  {stats.inReview}
+                </span>
+              )}
             </Link>
             <Link to="/ledger" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
               <i className="fa-solid fa-fingerprint w-4"></i> Audit Ledger
@@ -70,16 +136,20 @@ const UserDashboard = () => {
         </div>
 
         <div className="p-4 border-t border-stone-200/80 flex items-center justify-between bg-[#F0E8DC]">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-[#6B1724]" />
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-stone-800 truncate">{userName}</p>
-              <p className="text-[10px] text-stone-500 font-mono truncate">{userId}</p>
+          <div className="flex items-center gap-2.5">
+            <img src={anonymousAvatar} alt="Unknown Identity" className="w-8 h-8 rounded-full object-cover border border-[#6B1724]" />
+            <div>
+              <p className="text-xs font-bold text-stone-800">{userName}</p>
+              <p className="text-[10px] text-stone-500 font-mono">{userId}</p>
             </div>
           </div>
-          <Link to="/login" title="Logout" className="text-stone-400 hover:text-[#6B1724] p-1.5 transition">
+          <button
+            onClick={handleLogout}
+            title="Logout"
+            className="text-stone-400 hover:text-[#6B1724] p-1.5 transition"
+          >
             <i className="fa-solid fa-arrow-right-from-bracket text-xs"></i>
-          </Link>
+          </button>
         </div>
       </aside>
 
@@ -93,27 +163,38 @@ const UserDashboard = () => {
               <p className="text-xs text-stone-500 hidden sm:block">Track current status and institutional redressal actions</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <Link to="/file-complaint" className="px-3 sm:px-4 py-2 bg-[#6B1724] hover:bg-[#54121C] text-white rounded-xl text-xs font-semibold shadow transition flex items-center gap-1.5">
-              <i className="fa-solid fa-plus text-[10px]"></i> <span className="hidden sm:inline">File New Petition</span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowChangePassword(true)}
+              className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-semibold shadow-xs transition flex items-center gap-1.5"
+            >
+              <i className="fa-solid fa-key text-[10px] text-[#7a1620]"></i> Change Password
+            </button>
+            <Link to="/file-complaint" className="px-4 py-2 bg-[#6B1724] hover:bg-[#54121C] text-white rounded-xl text-xs font-semibold shadow transition flex items-center gap-1.5">
+              <i className="fa-solid fa-plus text-[10px]"></i> File New Petition
             </Link>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
-          <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-4">
+        <ChangePasswordModal
+          isOpen={showChangePassword}
+          onClose={() => setShowChangePassword(false)}
+        />
+
+        <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Link to="/my-petitions" className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm flex items-center justify-between hover:border-[#6B1724]/40 hover:shadow-md transition block group">
               <div>
                 <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Total Petitions</p>
-                <h3 className="text-2xl font-extrabold text-stone-800 mt-1 group-hover:text-[#6B1724] transition">12</h3>
-                <p className="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1"><i className="fa-solid fa-arrow-up text-[8px]"></i> 20%</p>
+                <h3 className="text-2xl font-extrabold text-stone-800 mt-1 group-hover:text-[#6B1724] transition">{stats.total}</h3>
+                <p className="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1"><i className="fa-solid fa-arrow-up text-[8px]"></i> Active</p>
               </div>
               <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center text-xl"><i className="fa-solid fa-folder-closed"></i></div>
             </Link>
             <Link to="/my-petitions" className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm flex items-center justify-between hover:border-amber-400 hover:shadow-md transition block group">
               <div>
                 <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">In Review</p>
-                <h3 className="text-2xl font-extrabold text-amber-600 mt-1">3</h3>
+                <h3 className="text-2xl font-extrabold text-amber-600 mt-1">{stats.inReview}</h3>
                 <p className="text-[10px] text-stone-400 font-semibold mt-1">Active SLA</p>
               </div>
               <div className="w-11 h-11 rounded-xl bg-amber-100/50 text-amber-800 flex items-center justify-center text-xl"><i className="fa-solid fa-hourglass-half"></i></div>
@@ -121,15 +202,15 @@ const UserDashboard = () => {
             <Link to="/my-petitions" className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm flex items-center justify-between hover:border-emerald-400 hover:shadow-md transition block group">
               <div>
                 <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Resolved</p>
-                <h3 className="text-2xl font-extrabold text-emerald-600 mt-1">8</h3>
-                <p className="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1"><i className="fa-solid fa-arrow-up text-[8px]"></i> 33%</p>
+                <h3 className="text-2xl font-extrabold text-emerald-600 mt-1">{stats.resolved}</h3>
+                <p className="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1"><i className="fa-solid fa-arrow-up text-[8px]"></i> Closed</p>
               </div>
               <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-xl"><i className="fa-solid fa-circle-check"></i></div>
             </Link>
             <Link to="/my-petitions" className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm flex items-center justify-between hover:border-rose-400 hover:shadow-md transition block group">
               <div>
                 <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Escalated</p>
-                <h3 className="text-2xl font-extrabold text-rose-600 mt-1">1</h3>
+                <h3 className="text-2xl font-extrabold text-rose-600 mt-1">{stats.escalated}</h3>
                 <p className="text-[10px] text-rose-500 font-semibold mt-1">Ombudsman</p>
               </div>
               <div className="w-11 h-11 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center text-xl"><i className="fa-solid fa-triangle-exclamation"></i></div>
@@ -149,32 +230,58 @@ const UserDashboard = () => {
                       <th className="py-2.5 px-3">Petition ID</th>
                       <th className="py-2.5 px-3">Category</th>
                       <th className="py-2.5 px-3">Status</th>
-                      <th className="py-2.5 px-3">SLA Deadline</th>
+                      <th className="py-2.5 px-3">Date</th>
                       <th className="py-2.5 px-3 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100 font-medium">
-                    <tr className="hover:bg-stone-50 transition">
-                      <td className="py-3 px-3 font-mono font-bold text-[#6B1724]">#NY-1048</td>
-                      <td className="py-3 px-3">Harassment & Safety</td>
-                      <td className="py-3 px-3"><span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">In Review</span></td>
-                      <td className="py-3 px-3 font-mono text-rose-600 font-semibold">01h 24m remaining</td>
-                      <td className="py-3 px-3 text-right"><Link to="/petition-detail" className="px-2.5 py-1 bg-stone-100 hover:bg-[#6B1724] hover:text-white rounded-lg text-xs font-semibold transition">View</Link></td>
-                    </tr>
-                    <tr className="hover:bg-stone-50 transition">
-                      <td className="py-3 px-3 font-mono font-bold text-[#6B1724]">#NY-1047</td>
-                      <td className="py-3 px-3">Hostel Facilities</td>
-                      <td className="py-3 px-3"><span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Resolved</span></td>
-                      <td className="py-3 px-3 font-mono text-stone-400">Completed</td>
-                      <td className="py-3 px-3 text-right"><Link to="/petition-detail" className="px-2.5 py-1 bg-stone-100 hover:bg-[#6B1724] hover:text-white rounded-lg text-xs font-semibold transition">View</Link></td>
-                    </tr>
-                    <tr className="hover:bg-stone-50 transition">
-                      <td className="py-3 px-3 font-mono font-bold text-[#6B1724]">#NY-1046</td>
-                      <td className="py-3 px-3">Academics</td>
-                      <td className="py-3 px-3"><span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">Assigned</span></td>
-                      <td className="py-3 px-3 font-mono text-amber-600 font-semibold">06h 10m</td>
-                      <td className="py-3 px-3 text-right"><Link to="/petition-detail" className="px-2.5 py-1 bg-stone-100 hover:bg-[#6B1724] hover:text-white rounded-lg text-xs font-semibold transition">View</Link></td>
-                    </tr>
+                    {loading ? (
+                      <tr>
+                        <td colSpan="5" className="py-8 text-center text-stone-400">
+                          <i className="fa-solid fa-spinner fa-spin mr-2"></i> Loading your petitions...
+                        </td>
+                      </tr>
+                    ) : recentPetitions.length > 0 ? (
+                      recentPetitions.map((p, idx) => (
+                        <tr key={p.complaintId || idx} className="hover:bg-stone-50 transition">
+                          <td className="py-3 px-3 font-mono font-bold text-[#6B1724]">{p.complaintId}</td>
+                          <td className="py-3 px-3">{p.category}</td>
+                          <td className="py-3 px-3">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                              {p.status || 'Filed'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 font-mono text-stone-500">
+                            {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : 'Active'}
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <Link to={`/petition-detail?id=${encodeURIComponent(p.complaintId)}`} className="px-2.5 py-1 bg-stone-100 hover:bg-[#6B1724] hover:text-white rounded-lg text-xs font-semibold transition">
+                              View
+                            </Link>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="5" className="py-12 text-center">
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <div className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center text-stone-400 text-lg mb-1">
+                              <i className="fa-solid fa-folder-open"></i>
+                            </div>
+                            <p className="font-bold text-sm text-stone-700">No Complaints Filed Yet</p>
+                            <p className="text-xs text-stone-400 max-w-sm">
+                              You currently have zero active or resolved petitions on file. Submit your first grievance using the button below.
+                            </p>
+                            <Link
+                              to="/file-complaint"
+                              className="mt-2 px-4 py-2 bg-[#6B1724] hover:bg-[#54121C] text-white rounded-xl text-xs font-semibold shadow transition inline-flex items-center gap-1.5"
+                            >
+                              <i className="fa-solid fa-plus text-[10px]"></i> File a Complaint
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -188,17 +295,23 @@ const UserDashboard = () => {
                 <div className="relative w-32 h-32 flex items-center justify-center">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                     <path className="text-stone-100" strokeWidth="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    <path className="text-[#6B1724]" strokeDasharray="94, 100" strokeWidth="3.5" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path className="text-[#6B1724]" strokeDasharray={stats.total > 0 ? "94, 100" : "0, 100"} strokeWidth="3.5" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                   </svg>
                   <div className="absolute flex flex-col items-center">
-                    <span className="text-2xl font-extrabold text-[#6B1724]">94%</span>
-                    <span className="text-[8px] uppercase tracking-wider text-stone-400 font-bold">On-Time</span>
+                    <span className="text-2xl font-extrabold text-[#6B1724]">
+                      {stats.total > 0 ? "94%" : "--"}
+                    </span>
+                    <span className="text-[8px] uppercase tracking-wider text-stone-400 font-bold">
+                      {stats.total > 0 ? "On-Time" : "No Activity"}
+                    </span>
                   </div>
                 </div>
               </div>
               <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs gap-2">
                 <span className="text-stone-500 font-medium">Average Resolution Time:</span>
-                <span className="font-bold text-stone-800 font-mono">2.4 days</span>
+                <span className="font-bold text-stone-800 font-mono">
+                  {stats.total > 0 ? "2.4 days" : "N/A"}
+                </span>
               </div>
             </div>
           </div>

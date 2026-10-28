@@ -1,14 +1,53 @@
-import React from "react";
-import { Navigate } from "react-router-dom";
+import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
-export default function ProtectedRoute({ role, children }) {
-  const userRole = localStorage.getItem("role") || sessionStorage.getItem("role");
+/**
+ * Route protection wrapper.
+ * Prevents unauthenticated users from reaching private portal pages (e.g. /dashboard).
+ * If the user is unauthenticated, they are redirected to /login with state preserved.
+ */
+export default function ProtectedRoute({ children, roleRequired = null, redirectTo = '/login' }) {
+  const location = useLocation();
+  const reduxToken = useSelector((state) => state.auth?.token);
+  const reduxUser = useSelector((state) => state.auth?.user);
 
-  if (!userRole) {
-    return <Navigate to={role === "authority" ? "/authority-login" : "/login"} replace />;
+  // Check token in Redux, localStorage, or sessionStorage
+  const token =
+    reduxToken ||
+    localStorage.getItem('token') ||
+    sessionStorage.getItem('token') ||
+    localStorage.getItem('authorityToken') ||
+    sessionStorage.getItem('authorityToken');
+
+  if (!token) {
+    // Unauthenticated user -> redirect to login
+    return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
-  if (userRole !== role) {
-    return <Navigate to={userRole === "authority" ? "/officerdash" : "/dashboard"} replace />;
+
+  // If a role is required (e.g. 'officer' or 'admin')
+  if (roleRequired) {
+    const userRole =
+      reduxUser?.role ||
+      localStorage.getItem('nyaya_user_role') ||
+      (localStorage.getItem('authorityToken') || sessionStorage.getItem('authorityToken') ? 'officer' : null);
+
+    // If user lacks the required role and is not an admin
+    if (!userRole || (userRole !== roleRequired && userRole !== 'admin')) {
+      return <Navigate to={redirectTo} state={{ from: location, roleMismatch: true }} replace />;
+    }
+
+    // If role required is officer and user is an officer, verify account approval
+    if (userRole === 'officer') {
+      const verificationStatus =
+        reduxUser?.verificationStatus ||
+        localStorage.getItem('nyaya_verification_status');
+
+      if (verificationStatus && verificationStatus !== 'approved') {
+        return <Navigate to="/authority/login" state={{ from: location, notApproved: true }} replace />;
+      }
+    }
   }
+
   return children;
 }
