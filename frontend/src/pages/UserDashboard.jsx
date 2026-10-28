@@ -6,6 +6,7 @@ import logo from '../assets/logo.png';
 import anonymousAvatar from '../assets/anonymous-avatar.svg';
 import { complaintApi, authApi } from '../services/api';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import MobileNavToggle from '../components/MobileNavToggle';
 
 const UserDashboard = () => {
   const navigate = useNavigate();
@@ -13,9 +14,11 @@ const UserDashboard = () => {
   const [userName, setUserName] = useState('User');
   const [userId, setUserId] = useState('');
   const [stats, setStats] = useState({ total: 0, inReview: 0, resolved: 0, escalated: 0 });
+  const [sla, setSla] = useState({ onTimePct: null, avgDays: null });
   const [recentPetitions, setRecentPetitions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     const savedName = localStorage.getItem('nyaya_user_name') || sessionStorage.getItem('nyaya_logged_user');
@@ -45,6 +48,16 @@ const UserDashboard = () => {
           if (u.rollNo) setUserId(u.rollNo);
         }
       }).catch(() => {});
+
+      // Dynamic SLA summary (on-time % and average resolution time)
+      complaintApi.getSlaSummary()
+        .then((res) => {
+          const d = res.data?.data;
+          if (d) setSla({ onTimePct: d.onTimePct, avgDays: d.avgDays });
+        })
+        .catch(() => {
+          setSla({ onTimePct: null, avgDays: null });
+        });
 
       complaintApi.getMyComplaints({ limit: 10 })
         .then((res) => {
@@ -84,6 +97,9 @@ const UserDashboard = () => {
     dispatch(logout());
     navigate('/login');
   };
+
+  const hasSlaData = sla.onTimePct !== null;
+  const slaPct = hasSlaData ? sla.onTimePct : 0;
 
   return (
     <div className="text-stone-800 flex h-dvh w-full overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -286,6 +302,8 @@ const UserDashboard = () => {
                 </table>
               </div>
             </div>
+
+            {/* SLA COMPLIANCE (dynamic) */}
             <div className="lg:col-span-4 bg-white rounded-2xl border border-stone-200/80 shadow-sm p-4 md:p-6 flex flex-col justify-between">
               <div>
                 <h2 className="text-sm font-bold text-stone-800">SLA Compliance</h2>
@@ -295,14 +313,14 @@ const UserDashboard = () => {
                 <div className="relative w-32 h-32 flex items-center justify-center">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                     <path className="text-stone-100" strokeWidth="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    <path className="text-[#6B1724]" strokeDasharray={stats.total > 0 ? "94, 100" : "0, 100"} strokeWidth="3.5" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path className="text-[#6B1724]" strokeDasharray={`${slaPct}, 100`} strokeWidth="3.5" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                   </svg>
                   <div className="absolute flex flex-col items-center">
                     <span className="text-2xl font-extrabold text-[#6B1724]">
-                      {stats.total > 0 ? "94%" : "--"}
+                      {hasSlaData ? `${sla.onTimePct}%` : '--'}
                     </span>
                     <span className="text-[8px] uppercase tracking-wider text-stone-400 font-bold">
-                      {stats.total > 0 ? "On-Time" : "No Activity"}
+                      {hasSlaData ? 'On-Time' : 'No Data Yet'}
                     </span>
                   </div>
                 </div>
@@ -310,7 +328,7 @@ const UserDashboard = () => {
               <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs gap-2">
                 <span className="text-stone-500 font-medium">Average Resolution Time:</span>
                 <span className="font-bold text-stone-800 font-mono">
-                  {stats.total > 0 ? "2.4 days" : "N/A"}
+                  {sla.avgDays !== null ? `${sla.avgDays} days` : 'N/A'}
                 </span>
               </div>
             </div>

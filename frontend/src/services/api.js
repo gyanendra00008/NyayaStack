@@ -131,6 +131,7 @@ export const complaintApi = {
       },
     }),
   getMyComplaints: (params = {}) => api.get('/complaints/my', { params }),
+  getSlaSummary: () => api.get('/complaints/sla-summary'),
   getAssignedComplaints: (params = {}) => api.get('/complaints/assigned', { params }),
   updateComplaintStatus: (complaintId, payload) => api.patch(`/complaints/${complaintId}/status`, payload),
   getComplaintById: (complaintId) => api.get(`/complaints/${complaintId}`),
