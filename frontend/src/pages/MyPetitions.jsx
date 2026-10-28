@@ -23,6 +23,7 @@ const MyPetitions = () => {
   const [backendPetitions, setBackendPetitions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
