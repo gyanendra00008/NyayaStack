@@ -183,17 +183,16 @@ const complaintSchema = new mongoose.Schema(
 );
 
 // New complaint: set slaDueAt based on category
-complaintSchema.pre("validate", function (next) {
+complaintSchema.pre("validate", function () {
   if (this.isNew && !this.slaDueAt) {
     const days = SLA_DAYS[this.category] ?? 7;
     this.slaDueAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
   }
-  next();
 });
 
 // Status changed: set / clear resolvedAt
 // NOTE: works only with doc.save(), not findOneAndUpdate / updateOne
-complaintSchema.pre("save", function (next) {
+complaintSchema.pre("save", function () {
   if (!this.isNew && this.isModified("status")) {
     if (this.status === "Resolved") {
       this.resolvedAt = new Date();
@@ -201,7 +200,6 @@ complaintSchema.pre("save", function (next) {
       this.resolvedAt = undefined; // reopened
     }
   }
-  next();
 });
 
 complaintSchema.index({ userId: 1, createdAt: -1 });

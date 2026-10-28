@@ -98,6 +98,18 @@ const UserDashboard = () => {
     navigate('/login');
   };
 
+  // Per-complaint SLA countdown from slaDueAt
+  const formatSla = (p) => {
+    if (p.status === 'Resolved') return 'Completed';
+    if (p.status === 'Rejected') return 'Closed';
+    if (!p.slaDueAt) return '--';
+    const ms = new Date(p.slaDueAt) - new Date();
+    if (ms <= 0) return 'Overdue';
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    return h >= 24 ? `${Math.floor(h / 24)}d ${h % 24}h left` : `${h}h ${m}m left`;
+  };
+
   const hasSlaData = sla.onTimePct !== null;
   const slaPct = hasSlaData ? sla.onTimePct : 0;
 
@@ -240,12 +252,13 @@ const UserDashboard = () => {
                 <Link to="/my-petitions" className="text-xs text-[#6B1724] font-bold hover:underline flex items-center gap-1">View All <i className="fa-solid fa-arrow-right text-[10px]"></i></Link>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[560px] text-left text-xs">
+                <table className="w-full min-w-[640px] text-left text-xs">
                   <thead>
                     <tr className="border-b border-stone-200 text-stone-400 font-semibold uppercase text-[10px]">
                       <th className="py-2.5 px-3">Petition ID</th>
                       <th className="py-2.5 px-3">Category</th>
                       <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3">SLA Deadline</th>
                       <th className="py-2.5 px-3">Date</th>
                       <th className="py-2.5 px-3 text-right">Action</th>
                     </tr>
@@ -253,7 +266,7 @@ const UserDashboard = () => {
                   <tbody className="divide-y divide-stone-100 font-medium">
                     {loading ? (
                       <tr>
-                        <td colSpan="5" className="py-8 text-center text-stone-400">
+                        <td colSpan="6" className="py-8 text-center text-stone-400">
                           <i className="fa-solid fa-spinner fa-spin mr-2"></i> Loading your petitions...
                         </td>
                       </tr>
@@ -267,6 +280,9 @@ const UserDashboard = () => {
                               {p.status || 'Filed'}
                             </span>
                           </td>
+                          <td className={`py-3 px-3 font-mono text-[11px] ${formatSla(p) === 'Overdue' ? 'text-rose-600 font-bold' : 'text-stone-600'}`}>
+                            {formatSla(p)}
+                          </td>
                           <td className="py-3 px-3 font-mono text-stone-500">
                             {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : 'Active'}
                           </td>
@@ -279,7 +295,7 @@ const UserDashboard = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="5" className="py-12 text-center">
+                        <td colSpan="6" className="py-12 text-center">
                           <div className="flex flex-col items-center justify-center gap-2">
                             <div className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center text-stone-400 text-lg mb-1">
                               <i className="fa-solid fa-folder-open"></i>
@@ -313,7 +329,9 @@ const UserDashboard = () => {
                 <div className="relative w-32 h-32 flex items-center justify-center">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                     <path className="text-stone-100" strokeWidth="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    <path className="text-[#6B1724]" strokeDasharray={`${slaPct}, 100`} strokeWidth="3.5" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    {slaPct > 0 && (
+                      <path className="text-[#6B1724]" strokeDasharray={`${slaPct}, 100`} strokeWidth="3.5" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    )}
                   </svg>
                   <div className="absolute flex flex-col items-center">
                     <span className="text-2xl font-extrabold text-[#6B1724]">

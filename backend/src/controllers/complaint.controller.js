@@ -150,6 +150,7 @@ async function createComplaint(req, res, next) {
     const initialStatus = "Filed";
 
     // 2. Persist complaint into the storage database with retry on complaintId collision
+    // NOTE: slaDueAt is set automatically by the model's pre("validate") hook
     const maxRetries = 3;
     let savedComplaint = null;
 
@@ -207,6 +208,7 @@ async function createComplaint(req, res, next) {
         status: savedComplaint.status,
         isAnonymous: savedComplaint.isAnonymous,
         attachments: savedComplaint.attachments,
+        slaDueAt: savedComplaint.slaDueAt,
         createdAt: savedComplaint.createdAt,
         updatedAt: savedComplaint.updatedAt,
       },
@@ -245,7 +247,7 @@ async function getMyComplaints(req, res, next) {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .select("complaintId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank createdAt updatedAt -_id")
+        .select("complaintId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank slaDueAt resolvedAt createdAt updatedAt -_id")
         .lean(),
     ]);
 
@@ -261,6 +263,63 @@ async function getMyComplaints(req, res, next) {
         limit,
         total,
         totalPages,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Controller: GET /api/complaints/sla-summary
+ * Computes SLA compliance (on-time %, average resolution time) from the
+ * logged-in user's own complaints. Nothing here is hardcoded.
+ */
+async function getMySlaSummary(req, res, next) {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const complaints = await Complaint.find({ userId })
+      .select("status slaDueAt resolvedAt createdAt -_id")
+      .lean();
+
+    const now = new Date();
+    let resolved = 0;
+    let onTime = 0;
+    let breachedOpen = 0;
+    let totalMs = 0;
+
+    for (const c of complaints) {
+      if (!c.slaDueAt) continue; // older complaints created before SLA tracking
+
+      if (c.status === "Resolved" && c.resolvedAt) {
+        resolved++;
+        totalMs += new Date(c.resolvedAt) - new Date(c.createdAt);
+        if (new Date(c.resolvedAt) <= new Date(c.slaDueAt)) onTime++;
+      } else if (
+        !["Resolved", "Rejected"].includes(c.status) &&
+        now > new Date(c.slaDueAt)
+      ) {
+        breachedOpen++; // still open and deadline already passed
+      }
+    }
+
+    const evaluated = resolved + breachedOpen;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        onTimePct: evaluated ? Math.round((onTime / evaluated) * 100) : null,
+        avgDays: resolved ? Number((totalMs / resolved / 86400000).toFixed(1)) : null,
+        resolved,
+        breachedOpen,
+        total: complaints.length,
       },
     });
   } catch (error) {
@@ -351,7 +410,7 @@ async function getComplaintById(req, res, next) {
     }
 
     const complaint = await Complaint.findOne({ complaintId })
-      .select("complaintId userId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank createdAt updatedAt -_id")
+      .select("complaintId userId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank slaDueAt resolvedAt createdAt updatedAt -_id")
       .lean();
 
     if (!complaint) {
@@ -656,7 +715,7 @@ async function getAssignedComplaints(req, res, next) {
         .skip(skip)
         .limit(limitNum)
         .select(
-          "complaintId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank createdAt updatedAt -_id"
+          "complaintId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank slaDueAt resolvedAt createdAt updatedAt -_id"
         )
         .lean(),
       Complaint.countDocuments({
@@ -693,6 +752,7 @@ async function getAssignedComplaints(req, res, next) {
 /**
  * Controller: PATCH /api/complaints/:complaintId/status
  * Updates grievance workflow status (e.g. Assigned -> In Progress -> Resolved).
+ * NOTE: resolvedAt is set automatically by the model's pre("save") hook.
  */
 async function updateComplaintStatus(req, res, next) {
   try {
@@ -744,6 +804,7 @@ async function updateComplaintStatus(req, res, next) {
       data: {
         complaintId: complaint.complaintId,
         status: complaint.status,
+        resolvedAt: complaint.resolvedAt,
         updatedAt: complaint.updatedAt,
       },
     });
@@ -755,6 +816,7 @@ async function updateComplaintStatus(req, res, next) {
 module.exports = {
   createComplaint,
   getMyComplaints,
+  getMySlaSummary,
   getAssignedComplaints,
   updateComplaintStatus,
   predictComplaintCategory,
