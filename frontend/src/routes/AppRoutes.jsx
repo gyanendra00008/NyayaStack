@@ -100,10 +100,11 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      {/* CHANGED: no roleRequired, so both students and officers can open notifications */}
       <Route
         path="/notifications"
         element={
-          <ProtectedRoute roleRequired="user">
+          <ProtectedRoute>
             <Notifications />
           </ProtectedRoute>
         }

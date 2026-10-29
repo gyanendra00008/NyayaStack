@@ -1,325 +1,215 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import logo from '../assets/logo.png';
 import anonymousAvatar from '../assets/anonymous-avatar.svg';
+import { notificationApi } from '../services/api';
 
-const isOfficer = localStorage.getItem('nyaya_user_role') === 'officer' || localStorage.getItem('nyaya_user_role') === 'admin';
+const hasToken = () => Boolean(localStorage.getItem('token') || sessionStorage.getItem('token'));
 
-const PetitionDetails = () => {
-  const [slaSeconds, setSlaSeconds] = useState(5025);
-  const [chatInput, setChatInput] = useState('');
-  const [messages, setMessages] = useState([
-    {
-      from: 'icc',
-      name: 'ICC Officer #04',
-      text: 'Please provide the specific date and timing when the incident occurred so we can requisition campus security footage from Gate No. 2.',
-      time: '12 Oct, 3:00 PM',
-      attachment: null
-    },
-    {
-      from: 'user',
-      text: 'It occurred on 8th Oct near Gate 2 at approximately 7:15 PM. Attaching the photograph of the vehicle involved.',
-      time: '12 Oct, 3:12 PM',
-      attachment: { name: 'vehicle_proof.png', size: '1.2 MB', icon: 'fa-image' }
-    }
-  ]);
-  const chatStreamRef = useRef(null);
+const TYPE_META = {
+  NEW_COMPLAINT: { icon: 'fa-file-circle-plus', box: 'bg-rose-50 text-[#6B1724]' },
+  RESOLVED: { icon: 'fa-circle-check', box: 'bg-emerald-50 text-emerald-700' },
+  ESCALATED: { icon: 'fa-arrow-trend-up', box: 'bg-amber-50 text-amber-700' },
+};
+
+const timeAgo = (iso) => {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
+  return new Date(iso).toLocaleDateString();
+};
+
+const Notifications = () => {
+  const navigate = useNavigate();
+  const [navOpen, setNavOpen] = useState(false);
+  const [items, setItems] = useState([]);
+  const [filter, setFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const isOfficer = localStorage.getItem('nyaya_user_role') === 'officer';
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setSlaSeconds(prev => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(interval);
+    if (!hasToken()) navigate(isOfficer ? '/authority/login' : '/login', { replace: true });
+  }, [navigate, isOfficer]);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await notificationApi.getAll();
+      setItems(res.data?.notifications || []);
+      setError('');
+    } catch (e) {
+      const status = e.response?.status;
+      const msg = e.response?.data?.message || e.message || 'Could not load notifications';
+      setError(status ? `${msg} (status ${status})` : msg);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    if (chatStreamRef.current) {
-      chatStreamRef.current.scrollTop = chatStreamRef.current.scrollHeight;
+    load();
+    const t = setInterval(load, 30000);
+    return () => clearInterval(t);
+  }, [load]);
+
+  const openNotification = (n) => {
+    if (!n.isRead) {
+      setItems((prev) => prev.map((x) => (x._id === n._id ? { ...x, isRead: true } : x)));
+      notificationApi.markRead(n._id).catch(() => {});
     }
-  }, [messages]);
-
-  const formatSla = (totalSeconds) => {
-    const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
-    const mins = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
-    const secs = String(totalSeconds % 60).padStart(2, '0');
-    return `${hours}:${mins}:${secs}`;
+    if (n.complaintId) {
+      navigate(isOfficer ? '/officerdash' : `/petition-detail?id=${encodeURIComponent(n.complaintId)}`);
+    }
   };
 
-  const iccReply = () => {
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        from: 'icc',
-        name: 'ICC Officer #04',
-        text: 'Acknowledged. Your communication has been officially appended to Docket #NY-1048. Security personnel have been dispatched to verify Gate No. 2 logs.',
-        time: 'Just now',
-        attachment: null
-      }]);
-    }, 1100);
+  const markAllRead = () => {
+    setItems((prev) => prev.map((x) => ({ ...x, isRead: true })));
+    notificationApi.markAllRead().catch(() => {});
   };
 
-  const handleChatSubmit = (e) => {
-    if (e) e.preventDefault();
-    const text = chatInput.trim();
-    if (!text) return;
+  const unreadCount = items.filter((n) => !n.isRead).length;
+  const shown = filter === 'unread' ? items.filter((n) => !n.isRead) : items;
 
-    setMessages(prev => [...prev, { from: 'user', text, time: 'Just now', attachment: null }]);
-    setChatInput('');
-    iccReply();
-  };
+  const navLink = 'flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60';
+  const navActive = 'flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#6B1724] text-white shadow-sm';
 
-  const sendQuickPrompt = (promptText) => {
-    setMessages(prev => [...prev, { from: 'user', text: promptText, time: 'Just now', attachment: null }]);
-    setChatInput('');
-    iccReply();
-  };
-
-  const attachFileToChat = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setMessages(prev => [...prev, {
-      from: 'user',
-      text: 'Uploaded an attachment:',
-      time: 'Just now',
-      attachment: { name: file.name, size: `${(file.size / 1024).toFixed(0)} KB`, icon: 'fa-paperclip' }
-    }]);
-
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        from: 'icc',
-        name: 'ICC Officer #04',
-        text: `Attachment received and hashed: ${file.name}.`,
-        time: 'Just now',
-        attachment: null,
-        isHash: true,
-        fileName: file.name
-      }]);
-    }, 1000);
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('authorityToken');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('authorityToken');
   };
 
   return (
-    <div className="text-stone-800 flex h-screen w-screen overflow-hidden antialiased" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", backgroundColor: '#FAF7F2' }}>
-      {/* FULL SCREEN LEFT SIDEBAR */}
-      <aside className="w-64 h-full bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 select-none z-10">
-        <div>
-          <Link to="/" className="h-16 flex items-center gap-2.5 px-6 border-b border-stone-200/80 hover:bg-stone-100/50 transition">
-            <div className="w-8 h-8 rounded-full bg-[#6B1724] text-[#E8C582] flex items-center justify-center text-sm shadow-sm">
-              <i className="fa-solid fa-scale-balanced"></i>
-            </div>
+    <div className="text-stone-800 flex h-dvh w-full overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      {navOpen && <div className="fixed inset-0 bg-black/40 z-20 md:hidden" onClick={() => setNavOpen(false)} />}
+
+      <aside className={`fixed md:static inset-y-0 left-0 z-30 w-64 bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 transform transition-transform duration-200 ${navOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+        <div className="flex flex-col h-full">
+          <Link to="/" className="h-16 flex items-center gap-2.5 px-6 border-b border-stone-200/80 shrink-0">
+            <div className="w-8 h-8 rounded-full overflow-hidden shrink-0"><img src={logo} alt="NyayaStack" className="h-full w-full object-cover scale-[1.3]" /></div>
             <span className="font-bold text-lg text-[#6B1724]" style={{ fontFamily: "'Cinzel', serif" }}>NyayaStack</span>
           </Link>
-
-          <nav className="p-4 space-y-1 text-xs font-semibold">
-            <Link to="/dashboard" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-house w-4"></i> Dashboard
-            </Link>
-            {!isOfficer && (
-              <Link to="/file-complaint" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-                <i className="fa-solid fa-file-circle-plus w-4 text-[#6B1724]"></i> File a Complaint
-              </Link>
+          <nav className="p-4 space-y-1 text-xs font-semibold flex-1 overflow-y-auto">
+            {isOfficer ? (
+              <>
+                <Link to="/officerdash" className={navLink}><i className="fa-solid fa-house w-4"></i> Dashboard</Link>
+                <Link to="/notifications" className={navActive}><i className="fa-solid fa-bell w-4"></i> Notifications</Link>
+                <Link to="/ledger" className={navLink}><i className="fa-solid fa-fingerprint w-4"></i> Audit Ledger</Link>
+                <Link to="/publictrans" className={navLink}><i className="fa-solid fa-chart-pie w-4"></i> Public Transparency</Link>
+              </>
+            ) : (
+              <>
+                <Link to="/dashboard" className={navLink}><i className="fa-solid fa-house w-4"></i> Dashboard</Link>
+                <Link to="/file-complaint" className={navLink}><i className="fa-solid fa-file-circle-plus w-4"></i> File a Complaint</Link>
+                <Link to="/my-petitions" className={navLink}><i className="fa-solid fa-folder-open w-4"></i> My Petitions</Link>
+                <Link to="/petition-detail" className={navLink}><i className="fa-solid fa-comments w-4"></i> Inquiry Chat</Link>
+                <Link to="/notifications" className={navActive}><i className="fa-solid fa-bell w-4"></i> Notifications</Link>
+                <Link to="/ledger" className={navLink}><i className="fa-solid fa-fingerprint w-4"></i> Audit Ledger</Link>
+                <Link to="/publictrans" className={navLink}><i className="fa-solid fa-chart-pie w-4"></i> Public Transparency</Link>
+              </>
             )}
-            <Link to="/my-petitions" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-folder-open w-4"></i> My Petitions
-            </Link>
-            <Link to="/petition-detail" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#6B1724] text-white shadow-sm">
-              <i className="fa-solid fa-comments w-4"></i> Inquiry Chat
-            </Link>
-            <Link to="/notifications" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-bell w-4"></i> Notifications
-              <span className="ml-auto bg-rose-100 text-[#6B1724] px-1.5 py-0.5 rounded-full text-[10px] font-bold">4</span>
-            </Link>
-            <Link to="/ledger" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-fingerprint w-4"></i> Audit Ledger
-            </Link>
-            <Link to="/publictrans" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-chart-pie w-4"></i> Public Transparency
-            </Link>
           </nav>
-        </div>
-
-        <div className="p-4 border-t border-stone-200/80 flex items-center justify-between bg-[#F0E8DC]">
-          <div className="flex items-center gap-2.5">
-            <img src={anonymousAvatar} alt="Unknown Identity" className="w-8 h-8 rounded-full object-cover border border-[#6B1724]" />
-            <div>
-              <p className="text-xs font-bold text-stone-800">User</p>
-              <p className="text-[10px] text-stone-500 font-mono">Enter here</p>
+          <div className="p-4 border-t border-stone-200/80 flex items-center justify-between bg-[#F0E8DC] shrink-0">
+            <div className="flex items-center gap-2.5">
+              <img src={anonymousAvatar} alt="Unknown Identity" className="w-8 h-8 rounded-full border border-[#6B1724]" />
+              <div>
+                <p className="text-xs font-bold">{localStorage.getItem('nyaya_user_name') || 'User'}</p>
+                <p className="text-[10px] text-stone-500 font-mono">{localStorage.getItem('nyaya_logged_user') || (isOfficer ? 'Officer' : 'Student')}</p>
+              </div>
             </div>
+            <Link to={isOfficer ? '/authority/login' : '/login'} onClick={logout} className="text-stone-400 hover:text-[#6B1724] p-1.5"><i className="fa-solid fa-arrow-right-from-bracket text-xs"></i></Link>
           </div>
-          <Link to="/login" title="Logout" className="text-stone-400 hover:text-[#6B1724] p-1.5 transition">
-            <i className="fa-solid fa-arrow-right-from-bracket text-xs"></i>
-          </Link>
         </div>
       </aside>
 
-      {/* FULL SCREEN RIGHT CONTENT AREA */}
-      <main className="flex-1 h-full flex flex-col overflow-hidden bg-[#FAF7F2]">
-        {/* Top Header Bar */}
-        <header className="h-16 bg-white border-b border-stone-200/80 px-8 flex items-center justify-between shrink-0 shadow-sm">
+      <main className="flex-1 h-screen flex flex-col overflow-hidden bg-[#FAF7F2] w-full">
+        <header className="h-16 bg-white border-b border-stone-200/80 px-4 md:px-8 flex items-center justify-between shrink-0 shadow-sm w-full">
           <div className="flex items-center gap-3">
-            <Link to="/my-petitions" className="w-8 h-8 rounded-xl bg-stone-100 hover:bg-[#6B1724] hover:text-white flex items-center justify-center text-xs transition" title="Back to Petitions">
-              <i className="fa-solid fa-arrow-left"></i>
-            </Link>
+            <button onClick={() => setNavOpen(true)} className="md:hidden text-stone-600 p-1.5" aria-label="Open menu"><i className="fa-solid fa-bars"></i></button>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold text-stone-800 font-mono">Petition #NY-1048</h1>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800">High Priority</span>
-              </div>
-              <p className="text-[11px] text-stone-400">Assigned to Internal Complaints Committee (ICC) • SLA Monitored</p>
+              <h1 className="text-lg font-bold">Notifications</h1>
+              <p className="text-xs text-stone-500">
+                {isOfficer ? 'New complaints assigned to you' : 'Updates on your complaints'}
+              </p>
             </div>
           </div>
-          <Link to="/ledger" className="px-3.5 py-1.5 bg-[#FAF5EE] hover:bg-stone-100 border border-stone-300 rounded-xl text-xs font-semibold text-[#6B1724] transition flex items-center gap-1.5 shadow-sm">
-            <i className="fa-solid fa-fingerprint"></i> SHA-256 Ledger
-          </Link>
+          {unreadCount > 0 && (
+            <button onClick={markAllRead} className="text-xs font-bold text-[#6B1724] hover:underline">
+              Mark all as read
+            </button>
+          )}
         </header>
 
-        {/* Scrollable Body Content */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
-          {/* Top Row: Complaint Details & SLA Timer */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <div className="lg:col-span-8 bg-white p-6 rounded-2xl border border-stone-200/80 shadow-sm space-y-3.5 text-xs">
-              <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
-                <h2 className="font-bold text-stone-800 text-sm">Complaint Details</h2>
-                <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 font-semibold"><i className="fa-solid fa-shield"></i> Merkle Verified</span>
+        <div className="flex-1 overflow-y-auto w-full bg-[#FAF7F2]">
+          <div className="p-6 md:p-8 w-full max-w-3xl mx-auto">
+            <div className="flex items-center gap-2 mb-5 text-xs font-semibold">
+              <button
+                onClick={() => setFilter('all')}
+                className={filter === 'all' ? 'px-3 py-1.5 rounded-full bg-[#6B1724] text-white' : 'px-3 py-1.5 rounded-full bg-stone-200 text-stone-600'}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setFilter('unread')}
+                className={filter === 'unread' ? 'px-3 py-1.5 rounded-full bg-[#6B1724] text-white' : 'px-3 py-1.5 rounded-full bg-stone-200 text-stone-600'}
+              >
+                Unread{unreadCount > 0 ? ` (${unreadCount})` : ''}
+              </button>
+            </div>
+
+            {error && (
+              <div className="mb-4 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+                <i className="fa-solid fa-circle-exclamation text-rose-600"></i>
+                <span>{error}</span>
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div><span className="text-stone-400 block text-[10px]">Category:</span><span className="font-bold text-stone-800">Harassment & Safety</span></div>
-                <div><span className="text-stone-400 block text-[10px]">Filed On:</span><span className="font-bold text-stone-800">12 Oct 2026, 10:30 AM</span></div>
-                <div><span className="text-stone-400 block text-[10px]">Anonymous:</span><span className="font-bold text-emerald-700">Yes (Concealed)</span></div>
-              </div>
-              <div>
-                <span className="text-stone-400 block text-[10px] mb-1">Description:</span>
-                <p className="bg-[#FAF5EE] p-3.5 rounded-xl border border-stone-200 text-stone-700 leading-relaxed">
-                  Enter the description of the problem here.
+            )}
+
+            {loading && <p className="text-sm text-stone-500">Loading notifications…</p>}
+
+            {!loading && !error && shown.length === 0 && (
+              <div className="bg-white rounded-2xl border border-stone-200/80 p-10 text-center">
+                <div className="w-14 h-14 mx-auto rounded-full bg-rose-50 text-[#6B1724] flex items-center justify-center text-xl mb-3">
+                  <i className="fa-solid fa-bell-slash"></i>
+                </div>
+                <p className="text-sm font-bold">
+                  {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
+                </p>
+                <p className="text-xs text-stone-500 mt-1">
+                  {isOfficer
+                    ? 'You will be notified here when a complaint is assigned to you.'
+                    : 'You will be notified here when a complaint is resolved or escalated.'}
                 </p>
               </div>
-              <div className="flex items-center gap-2 pt-1">
-                <span className="text-stone-400 text-[10px]">Attachments:</span>
-                <span onClick={() => alert('Viewing attachment proof1.pdf (Verified SHA-256 Checksum)')} className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 rounded-lg text-[11px] font-mono border border-stone-200 flex items-center gap-1 cursor-pointer transition">
-                  <i className="fa-solid fa-file-pdf text-rose-600"></i> proof1.pdf
-                </span>
-                <span onClick={() => alert('Viewing attachment gate2_photo.png')} className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 rounded-lg text-[11px] font-mono border border-stone-200 flex items-center gap-1 cursor-pointer transition">
-                  <i className="fa-solid fa-image text-indigo-600"></i> gate2_photo.png
-                </span>
-              </div>
-            </div>
+            )}
 
-            {/* SLA Timer */}
-            <div className="lg:col-span-4 bg-white p-6 rounded-2xl border border-stone-200/80 shadow-sm flex flex-col justify-between text-center">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">SLA Escalation Timer</span>
-                  <span className="text-[9px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200 animate-pulse">Live Enforced</span>
-                </div>
-                <div className="w-24 h-24 mx-auto my-2 rounded-full border-4 border-rose-100 border-t-rose-600 flex flex-col items-center justify-center bg-rose-50/20">
-                  <span className="font-mono font-extrabold text-base text-rose-600">{formatSla(slaSeconds)}</span>
-                  <span className="text-[8px] text-rose-400 uppercase">remaining</span>
-                </div>
-              </div>
-              <div className="text-xs bg-[#FAF5EE] p-3 rounded-xl border border-stone-200">
-                <span className="text-stone-400 block text-[10px]">Current Stage:</span>
-                <p className="font-bold text-amber-700">In Review (Under investigation by ICC)</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Row: State Machine & Inquiry Chat */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            {/* State Machine Timeline */}
-            <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-stone-200/80 shadow-sm space-y-4">
-              <h3 className="font-bold text-stone-800 text-xs uppercase tracking-wider text-stone-400 border-b border-stone-100 pb-2.5">Status Timeline (State Machine)</h3>
-              <div className="relative pl-5 space-y-5 before:content-[''] before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-stone-200 text-xs">
-                <div className="relative">
-                  <span className="absolute -left-5 top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[7px]"><i className="fa-solid fa-check"></i></span>
-                  <p className="font-bold text-stone-800">Filed</p>
-                  <p className="text-[10px] text-stone-400 font-mono">12 Oct 2026, 10:30 AM • By Student</p>
-                </div>
-                <div className="relative">
-                  <span className="absolute -left-5 top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[7px]"><i className="fa-solid fa-check"></i></span>
-                  <p className="font-bold text-stone-800">Assigned</p>
-                  <p className="text-[10px] text-stone-400 font-mono">12 Oct 2026, 02:15 PM • Assigned to ICC Officer</p>
-                </div>
-                <div className="relative">
-                  <span className="absolute -left-5 top-0.5 w-3.5 h-3.5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[7px] animate-spin"><i className="fa-solid fa-rotate"></i></span>
-                  <p className="font-bold text-amber-700">In Review (Current)</p>
-                  <p className="text-[10px] text-stone-400 font-mono">13 Oct 2026, 09:00 AM • Under Formal Inquiry</p>
-                </div>
-                <div className="relative opacity-40">
-                  <span className="absolute -left-5 top-0.5 w-3.5 h-3.5 rounded-full bg-stone-300"></span>
-                  <p className="font-bold text-stone-500">Resolved</p>
-                  <p className="text-[10px] text-stone-400">Pending Committee Findings</p>
-                </div>
-                <div className="relative opacity-40">
-                  <span className="absolute -left-5 top-0.5 w-3.5 h-3.5 rounded-full bg-stone-300"></span>
-                  <p className="font-bold text-stone-500">Escalated</p>
-                  <p className="text-[10px] text-stone-400">Ombudsman Escalation If SLA Breached</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Inquiry Chat */}
-            <div className="lg:col-span-7 bg-white rounded-2xl border border-stone-200/80 shadow-sm flex flex-col justify-between overflow-hidden">
-              <div className="p-3.5 border-b border-stone-100 bg-[#FAF5EE] flex justify-between items-center text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span className="font-bold text-stone-800">Inquiry Chat - #NY-1048</span>
-                </div>
-                <span className="text-[10px] text-[#6B1724] bg-rose-100/70 px-2.5 py-0.5 rounded-md font-mono font-bold">Secure Official Channel</span>
-              </div>
-
-              {/* Chat Stream */}
-              <div ref={chatStreamRef} className="p-4 space-y-3.5 overflow-y-auto max-h-80 text-xs">
-                {messages.map((msg, idx) => (
-                  msg.from === 'icc' ? (
-                    <div key={idx} className="flex items-start gap-2.5 max-w-sm">
-                      <div className="w-7 h-7 rounded-full bg-[#6B1724] text-white flex items-center justify-center text-[10px] font-bold shrink-0">ICC</div>
-                      <div>
-                        <div className="bg-stone-100 p-3 rounded-2xl rounded-tl-sm text-stone-800 leading-relaxed shadow-sm border border-stone-200">
-                          {msg.name && <p className="text-[10px] font-bold text-[#6B1724] mb-0.5">{msg.name}</p>}
-                          {msg.isHash ? (
-                            <p>Attachment received and hashed: <span className="font-mono text-[9px] bg-white px-1 py-0.5 rounded border">{msg.fileName}</span>.</p>
-                          ) : msg.text}
-                        </div>
-                        <span className="text-[9px] text-stone-400 mt-1 block font-mono">{msg.time}</span>
-                      </div>
+            <div className="space-y-3">
+              {shown.map((n) => {
+                const meta = TYPE_META[n.type] || TYPE_META.NEW_COMPLAINT;
+                return (
+                  <button
+                    key={n._id}
+                    onClick={() => openNotification(n)}
+                    className={`w-full text-left flex items-start gap-4 p-4 rounded-2xl border shadow-xs transition hover:border-[#6B1724]/40 ${
+                      n.isRead ? 'bg-white border-stone-200/80' : 'bg-white border-[#6B1724]/30'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${meta.box}`}>
+                      <i className={`fa-solid ${meta.icon}`}></i>
                     </div>
-                  ) : (
-                    <div key={idx} className="flex items-start gap-2.5 max-w-sm ml-auto flex-row-reverse">
-                      <div className="w-7 h-7 rounded-full bg-stone-800 text-white flex items-center justify-center text-[10px] font-bold shrink-0">You</div>
-                      <div className="text-right">
-                        <div className="bg-[#6B1724] text-white p-3 rounded-2xl rounded-tr-sm text-left leading-relaxed shadow-sm">
-                          {msg.text}
-                          {msg.attachment && (
-                            <div className="mt-2 p-1.5 bg-black/20 rounded flex items-center gap-2 text-[10px]">
-                              <i className={`fa-solid ${msg.attachment.icon} text-[#E8C582]`}></i>
-                              <span className="font-mono">{msg.attachment.name}</span>
-                              <span className="text-[9px] text-rose-200 ml-auto">{msg.attachment.size}</span>
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-[9px] text-stone-400 mt-1 block font-mono">{msg.time}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className={`text-sm ${n.isRead ? 'font-semibold' : 'font-bold'}`}>{n.title}</p>
+                        {!n.isRead && <span className="w-2 h-2 rounded-full bg-[#6B1724] mt-1.5 shrink-0" aria-label="Unread"></span>}
                       </div>
+                      {n.message && <p className="text-xs text-stone-600 mt-0.5 break-words">{n.message}</p>}
+                      <p className="text-[11px] text-stone-400 mt-1.5">{timeAgo(n.createdAt)}</p>
                     </div>
-                  )
-                ))}
-              </div>
-
-              {/* Quick Prompt Suggestion Chips */}
-              <div className="px-3.5 py-2 bg-stone-50 border-t border-stone-100 flex items-center gap-2 overflow-x-auto text-[11px]">
-                <button type="button" onClick={() => sendQuickPrompt('I have shared all relevant CCTV timestamps.')} className="px-2.5 py-1 bg-white hover:bg-stone-100 border border-stone-200 rounded-lg text-stone-600 whitespace-nowrap transition">📍 Shared CCTV info</button>
-                <button type="button" onClick={() => sendQuickPrompt('Could you please update me on the committee resolution timeline?')} className="px-2.5 py-1 bg-white hover:bg-stone-100 border border-stone-200 rounded-lg text-stone-600 whitespace-nowrap transition">⏱️ Status update inquiry</button>
-                <button type="button" onClick={() => sendQuickPrompt('Thank you. Awaiting the committee decision.')} className="px-2.5 py-1 bg-white hover:bg-stone-100 border border-stone-200 rounded-lg text-stone-600 whitespace-nowrap transition">🙏 Thank you</button>
-              </div>
-
-              {/* Interactive Input Form */}
-              <form onSubmit={handleChatSubmit} className="p-3 border-t border-stone-100 flex items-center gap-2 bg-[#FAF5EE]/70">
-                <input type="file" id="chatAttachInput" onChange={attachFileToChat} className="hidden" />
-                <button type="button" onClick={() => document.getElementById('chatAttachInput').click()} title="Attach file or screenshot" className="p-2 text-stone-500 hover:text-[#6B1724] transition rounded-lg hover:bg-stone-100">
-                  <i className="fa-solid fa-paperclip text-sm"></i>
-                </button>
-                <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} required placeholder="Type your response to ICC authority... (Press Enter to send)" className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-[#6B1724] bg-white" />
-                <button type="submit" className="px-4 py-2 bg-[#6B1724] hover:bg-[#54121C] text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
-                  <span>Send</span> <i className="fa-solid fa-paper-plane text-[10px]"></i>
-                </button>
-              </form>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -328,4 +218,4 @@ const PetitionDetails = () => {
   );
 };
 
-export default PetitionDetails;
+export default Notifications;

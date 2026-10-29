@@ -22,6 +22,7 @@ const {
 } = require("../utils/hierarchy.utils.js");
 const cloudinaryService = require("../services/cloudinary.service.js");
 const mlService = require("../services/ml.service.js");
+const { createNotification } = require("./notification.controller.js"); // NEW
 
 /**
  * Cross-database safe officer populator.
@@ -244,6 +245,18 @@ async function createComplaint(req, res, next) {
 
         throw dbError;
       }
+    }
+
+    // NEW: Notify the assigned officer about the new complaint
+    if (savedComplaint?.assignedTo) {
+      await createNotification({
+        recipient: savedComplaint.assignedTo,
+        recipientRole: "officer",
+        type: "NEW_COMPLAINT",
+        title: "New complaint assigned to you",
+        message: `${savedComplaint.complaintId}: ${savedComplaint.title}`,
+        complaintId: savedComplaint.complaintId,
+      });
     }
 
     // 3. Return sanitized public response
@@ -850,11 +863,27 @@ async function updateComplaintStatus(req, res, next) {
       });
     }
 
+    const previousStatus = complaint.status; // NEW
     complaint.status = status;
     if (!complaint.assignedTo && isAssignedOfficer) {
       complaint.assignedTo = req.user._id;
     }
     await complaint.save();
+
+    // NEW: Notify the student when the complaint is resolved or escalated
+    if (previousStatus !== status && (status === "Resolved" || status === "Escalated")) {
+      await createNotification({
+        recipient: complaint.userId,
+        recipientRole: "student",
+        type: status === "Resolved" ? "RESOLVED" : "ESCALATED",
+        title:
+          status === "Resolved"
+            ? "Your complaint was resolved"
+            : "Your complaint was escalated to a higher authority",
+        message: `${complaint.complaintId}: ${complaint.title}`,
+        complaintId: complaint.complaintId,
+      });
+    }
 
     // ── Hash-Chain Cascade Resolution ────────────────────────────────────────
     // If the resolved status is 'Resolved', automatically resolve all complaints
@@ -988,8 +1017,22 @@ async function resolveComplaintChain(req, res, next) {
 
     if (!complaint.chainId) {
       // Standalone complaint — just resolve this one
+      const wasResolved = complaint.status === "Resolved"; // NEW
       complaint.status = "Resolved";
       await complaint.save();
+
+      // NEW: Notify the student
+      if (!wasResolved) {
+        await createNotification({
+          recipient: complaint.userId,
+          recipientRole: "student",
+          type: "RESOLVED",
+          title: "Your complaint was resolved",
+          message: `${complaint.complaintId}: ${complaint.title}`,
+          complaintId: complaint.complaintId,
+        });
+      }
+
       return res.status(200).json({
         success: true,
         message: "Complaint resolved successfully (standalone, not part of a chain)",
@@ -1001,6 +1044,18 @@ async function resolveComplaintChain(req, res, next) {
       { chainId: complaint.chainId },
       { $set: { status: "Resolved" } }
     );
+
+    // NEW: Notify the student that the whole chain was resolved
+    if (result.modifiedCount > 0) {
+      await createNotification({
+        recipient: complaint.userId,
+        recipientRole: "student",
+        type: "RESOLVED",
+        title: "Your complaint was resolved",
+        message: `${complaint.complaintId}: ${complaint.title} (${result.modifiedCount} linked complaint(s) resolved)`,
+        complaintId: complaint.complaintId,
+      });
+    }
 
     return res.status(200).json({
       success: true,

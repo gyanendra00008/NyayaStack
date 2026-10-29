@@ -6,6 +6,7 @@ const { notFoundHandler, errorHandler } = require('./middleware/errorHandler.js'
 const authRoutes = require('./routes/auth.routes.js');
 const adminRoutes = require('./routes/admin.routes.js');
 const complaintRoutes = require('./routes/complaint.routes.js');
+const notificationRoutes = require('./routes/notification.routes.js'); // NEW
 const { generalLimiter } = require('./middleware/rateLimit.middleware.js');
 
 const app = express();
@@ -51,6 +52,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/admin', adminRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/petitions', complaintRoutes);
+app.use('/api/notifications', notificationRoutes); // NEW
 
 // Error handlers
 app.use(notFoundHandler);

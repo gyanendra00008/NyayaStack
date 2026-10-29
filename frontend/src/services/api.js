@@ -142,4 +142,11 @@ export const complaintApi = {
   resolveComplaintChain: (complaintId) => api.patch(`/complaints/${complaintId}/resolve-chain`),
 };
 
+// NEW: Notification API methods
+export const notificationApi = {
+  getAll: () => api.get('/notifications'),
+  markRead: (id) => api.patch(`/notifications/${id}/read`),
+  markAllRead: () => api.patch('/notifications/read-all'),
+};
+
 export default api;
