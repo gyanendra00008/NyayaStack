@@ -6,6 +6,7 @@ import logo from '../assets/logo.png';
 import anonymousAvatar from '../assets/anonymous-avatar.svg';
 import { complaintApi, authApi } from '../services/api';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import MobileNavToggle from '../components/MobileNavToggle';
 
 const UserDashboard = () => {
   const navigate = useNavigate();
@@ -13,9 +14,11 @@ const UserDashboard = () => {
   const [userName, setUserName] = useState('User');
   const [userId, setUserId] = useState('');
   const [stats, setStats] = useState({ total: 0, inReview: 0, resolved: 0, escalated: 0 });
+  const [sla, setSla] = useState({ onTimePct: null, avgDays: null });
   const [recentPetitions, setRecentPetitions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     const savedName = localStorage.getItem('nyaya_user_name') || sessionStorage.getItem('nyaya_logged_user');
@@ -45,6 +48,16 @@ const UserDashboard = () => {
           if (u.rollNo) setUserId(u.rollNo);
         }
       }).catch(() => {});
+
+      // Dynamic SLA summary (on-time % and average resolution time)
+      complaintApi.getSlaSummary()
+        .then((res) => {
+          const d = res.data?.data;
+          if (d) setSla({ onTimePct: d.onTimePct, avgDays: d.avgDays });
+        })
+        .catch(() => {
+          setSla({ onTimePct: null, avgDays: null });
+        });
 
       complaintApi.getMyComplaints({ limit: 10 })
         .then((res) => {
@@ -85,11 +98,29 @@ const UserDashboard = () => {
     navigate('/login');
   };
 
+  // Per-complaint SLA countdown from slaDueAt
+  const formatSla = (p) => {
+    if (p.status === 'Resolved') return 'Completed';
+    if (p.status === 'Rejected') return 'Closed';
+    if (!p.slaDueAt) return '--';
+    const ms = new Date(p.slaDueAt) - new Date();
+    if (ms <= 0) return 'Overdue';
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    return h >= 24 ? `${Math.floor(h / 24)}d ${h % 24}h left` : `${h}h ${m}m left`;
+  };
+
+  const hasSlaData = sla.onTimePct !== null;
+  const slaPct = hasSlaData ? sla.onTimePct : 0;
+
   return (
-    <div className="text-stone-800 flex h-screen w-screen overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="text-stone-800 flex h-dvh w-full overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      {/* Mobile backdrop */}
+      {navOpen && <div className="fixed inset-0 bg-black/40 z-20 md:hidden" onClick={() => setNavOpen(false)} />}
+
       {/* LEFT SIDEBAR */}
-      <aside className="w-64 h-full bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 select-none z-10">
-        <div>
+      <aside className={`fixed md:static inset-y-0 left-0 z-30 w-64 bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 select-none transform transition-transform duration-200 ${navOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+        <div className="overflow-y-auto">
           <Link to="/" className="h-16 flex items-center gap-2.5 px-6 border-b border-stone-200/80 hover:bg-stone-100/50 transition">
             <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
               <img src={logo} alt="NyayaStack" className="h-full w-full object-cover scale-[1.3]" />
@@ -146,11 +177,14 @@ const UserDashboard = () => {
       </aside>
 
       {/* RIGHT CONTENT */}
-      <main className="flex-1 h-full flex flex-col overflow-hidden bg-[#FAF7F2]">
-        <header className="h-16 bg-white border-b border-stone-200/80 px-8 flex items-center justify-between shrink-0 shadow-sm">
-          <div>
-            <h1 className="text-lg font-bold text-stone-800">Welcome back, <span>{userName}</span> 👋</h1>
-            <p className="text-xs text-stone-500">Track current status and institutional redressal actions</p>
+      <main className="flex-1 min-w-0 h-full flex flex-col overflow-hidden bg-[#FAF7F2]">
+        <header className="h-16 bg-white border-b border-stone-200/80 px-4 md:px-8 flex items-center justify-between shrink-0 shadow-sm gap-2">
+          <div className="flex items-center min-w-0">
+            <MobileNavToggle onClick={() => setNavOpen(true)} />
+            <div className="min-w-0">
+              <h1 className="text-base md:text-lg font-bold text-stone-800 truncate">Welcome back, <span>{userName}</span> 👋</h1>
+              <p className="text-xs text-stone-500 hidden sm:block">Track current status and institutional redressal actions</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -207,18 +241,19 @@ const UserDashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-8 bg-white rounded-2xl border border-stone-200/80 shadow-sm p-6">
+            <div className="lg:col-span-8 bg-white rounded-2xl border border-stone-200/80 shadow-sm p-4 md:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-bold text-stone-800">My Recent Petitions</h2>
                 <Link to="/my-petitions" className="text-xs text-[#6B1724] font-bold hover:underline flex items-center gap-1">View All <i className="fa-solid fa-arrow-right text-[10px]"></i></Link>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                <table className="w-full min-w-[640px] text-left text-xs">
                   <thead>
                     <tr className="border-b border-stone-200 text-stone-400 font-semibold uppercase text-[10px]">
                       <th className="py-2.5 px-3">Petition ID</th>
                       <th className="py-2.5 px-3">Category</th>
                       <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3">SLA Deadline</th>
                       <th className="py-2.5 px-3">Date</th>
                       <th className="py-2.5 px-3 text-right">Action</th>
                     </tr>
@@ -226,7 +261,7 @@ const UserDashboard = () => {
                   <tbody className="divide-y divide-stone-100 font-medium">
                     {loading ? (
                       <tr>
-                        <td colSpan="5" className="py-8 text-center text-stone-400">
+                        <td colSpan="6" className="py-8 text-center text-stone-400">
                           <i className="fa-solid fa-spinner fa-spin mr-2"></i> Loading your petitions...
                         </td>
                       </tr>
@@ -240,6 +275,9 @@ const UserDashboard = () => {
                               {p.status || 'Filed'}
                             </span>
                           </td>
+                          <td className={`py-3 px-3 font-mono text-[11px] ${formatSla(p) === 'Overdue' ? 'text-rose-600 font-bold' : 'text-stone-600'}`}>
+                            {formatSla(p)}
+                          </td>
                           <td className="py-3 px-3 font-mono text-stone-500">
                             {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : 'Active'}
                           </td>
@@ -252,7 +290,7 @@ const UserDashboard = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="5" className="py-12 text-center">
+                        <td colSpan="6" className="py-12 text-center">
                           <div className="flex flex-col items-center justify-center gap-2">
                             <div className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center text-stone-400 text-lg mb-1">
                               <i className="fa-solid fa-folder-open"></i>
@@ -275,7 +313,9 @@ const UserDashboard = () => {
                 </table>
               </div>
             </div>
-            <div className="lg:col-span-4 bg-white rounded-2xl border border-stone-200/80 shadow-sm p-6 flex flex-col justify-between">
+
+            {/* SLA COMPLIANCE (dynamic) */}
+            <div className="lg:col-span-4 bg-white rounded-2xl border border-stone-200/80 shadow-sm p-4 md:p-6 flex flex-col justify-between">
               <div>
                 <h2 className="text-sm font-bold text-stone-800">SLA Compliance</h2>
                 <p className="text-[11px] text-stone-400 mt-0.5">Average resolution performance</p>
@@ -284,22 +324,24 @@ const UserDashboard = () => {
                 <div className="relative w-32 h-32 flex items-center justify-center">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                     <path className="text-stone-100" strokeWidth="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    <path className="text-[#6B1724]" strokeDasharray={stats.total > 0 ? "94, 100" : "0, 100"} strokeWidth="3.5" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    {slaPct > 0 && (
+                      <path className="text-[#6B1724]" strokeDasharray={`${slaPct}, 100`} strokeWidth="3.5" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    )}
                   </svg>
                   <div className="absolute flex flex-col items-center">
                     <span className="text-2xl font-extrabold text-[#6B1724]">
-                      {stats.total > 0 ? "94%" : "--"}
+                      {hasSlaData ? `${sla.onTimePct}%` : '--'}
                     </span>
                     <span className="text-[8px] uppercase tracking-wider text-stone-400 font-bold">
-                      {stats.total > 0 ? "On-Time" : "No Activity"}
+                      {hasSlaData ? 'On-Time' : 'No Data Yet'}
                     </span>
                   </div>
                 </div>
               </div>
-              <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs">
+              <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs gap-2">
                 <span className="text-stone-500 font-medium">Average Resolution Time:</span>
                 <span className="font-bold text-stone-800 font-mono">
-                  {stats.total > 0 ? "2.4 days" : "N/A"}
+                  {sla.avgDays !== null ? `${sla.avgDays} days` : 'N/A'}
                 </span>
               </div>
             </div>

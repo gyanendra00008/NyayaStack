@@ -72,6 +72,7 @@ const guessCategoryFromText = (text) => {
 
 const FileComplaint = () => {
   const navigate = useNavigate();
+  const [navOpen, setNavOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
 
@@ -424,12 +425,14 @@ const FileComplaint = () => {
 
   const badgeClass = (step) =>
     currentStep === step
-      ? "px-3.5 py-1.5 rounded-full bg-[#6B1724] text-white"
-      : "px-3.5 py-1.5 rounded-full bg-stone-200 text-stone-600";
+      ? "px-3 py-1.5 rounded-full bg-[#6B1724] text-white"
+      : "px-3 py-1.5 rounded-full bg-stone-200 text-stone-600";
 
   return (
-    <div className="text-stone-800 flex h-screen w-screen overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      <aside className="w-64 h-screen bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0">
+    <div className="text-stone-800 flex h-dvh w-full overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      {navOpen && <div className="fixed inset-0 bg-black/40 z-20 md:hidden" onClick={() => setNavOpen(false)} />}
+
+      <aside className={`fixed md:static inset-y-0 left-0 z-30 w-64 bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 transform transition-transform duration-200 ${navOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         <div className="flex flex-col h-full">
           <Link to="/" className="h-16 flex items-center gap-2.5 px-6 border-b border-stone-200/80 shrink-0">
             <div className="w-8 h-8 rounded-full overflow-hidden shrink-0"><img src={logo} alt="NyayaStack" className="h-full w-full object-cover scale-[1.3]" /></div>

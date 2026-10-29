@@ -1,6 +1,8 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 
+import ProtectedRoute from "./ProtectedRoute";
+
 import HomePage from "../pages/HomePage";
 import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
@@ -19,7 +21,6 @@ import AdminDashboard from "../pages/AdminDashboard";
 import AdminAuthorityRequests from "../pages/AdminAuthorityRequests";
 import AuditLedger from "../pages/AuditLedger";
 import PublicTransparency from "../pages/PublicTransparency";
-import ProtectedRoute from "./ProtectedRoute";
 
 export default function AppRoutes() {
   return (

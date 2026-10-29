@@ -105,7 +105,7 @@ function AuthorityLogin() {
       className="min-h-screen flex items-center justify-center px-4 py-8 bg-cover bg-no-repeat bg-[#f6efe6] bg-[position:center_top]"
       style={{ backgroundImage: `url(${bg})` }}
     >
-      <div className="w-full max-w-md bg-[#fdf8ec] rounded-2xl shadow-xl border border-[#e6d7b8] p-8">
+      <div className="w-full max-w-md bg-[#fdf8ec] rounded-2xl shadow-xl border border-[#e6d7b8] p-5 sm:p-8">
         {/* Brand */}
         <div className="flex items-center justify-center gap-2">
           <div className="h-10 w-10 rounded-full overflow-hidden shrink-0">
@@ -176,7 +176,7 @@ function AuthorityLogin() {
           </div>
 
           {/* Remember + Forgot */}
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
             <label className="flex items-center gap-2 text-[#3b2a20] cursor-pointer">
               <input
                 type="checkbox"
@@ -208,7 +208,7 @@ function AuthorityLogin() {
 
         <p className="mt-6 text-center text-sm text-[#3b2a20]/80">
           New authority?{' '}
-          <Link to="/authority/register" className="text-[#7a1620] font-semibold hover:underline">
+          <Link to="/authority-register" className="text-[#7a1620] font-semibold hover:underline">
             Request access
           </Link>
         </p>
@@ -225,4 +225,3 @@ function AuthorityLogin() {
 }
 
 export default AuthorityLogin
-

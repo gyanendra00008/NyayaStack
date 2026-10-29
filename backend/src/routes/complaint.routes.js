@@ -10,6 +10,7 @@ const {
 const {
   createComplaint,
   getMyComplaints,
+  getMySlaSummary,
   getAssignedComplaints,
   updateComplaintStatus,
   getComplaintChain,
@@ -52,6 +53,14 @@ router.get(
   authenticateUser,
   validatePaginationQuery,
   getMyComplaints
+);
+
+// GET /api/complaints/sla-summary - Dynamic SLA compliance for the logged-in user
+// NOTE: must stay above "/:complaintId" so "sla-summary" is not read as an ID
+router.get(
+  "/sla-summary",
+  authenticateUser,
+  getMySlaSummary
 );
 
 // GET /api/complaints/assigned - Retrieve complaints assigned to lowest rank authority desk / officer

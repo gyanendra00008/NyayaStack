@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import MobileNavToggle from "../components/MobileNavToggle";
 
 export default function AuditLedger() {
   const isOfficer = localStorage.getItem('nyaya_user_role') === 'officer' || localStorage.getItem('nyaya_user_role') === 'admin';
   const [verifyText, setVerifyText] = useState("Verify Chain");
   const [verifying, setVerifying] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
 
   const copyHash = (hash) => {
     navigator.clipboard.writeText(hash).then(() => {
@@ -23,10 +25,11 @@ export default function AuditLedger() {
   };
 
   return (
-    <div className="text-stone-800 flex min-h-screen w-full overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="text-stone-800 flex h-dvh w-full overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      {navOpen && <div className="fixed inset-0 bg-black/40 z-20 md:hidden" onClick={() => setNavOpen(false)} />}
 
-      <aside className="w-72 h-screen bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 select-none z-10 sticky top-0">
-        <div>
+      <aside className={`fixed md:static inset-y-0 left-0 z-30 w-72 bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 select-none transform transition-transform duration-200 ${navOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}>
+        <div className="overflow-y-auto">
           <Link to="/dashboard" className="h-16 flex items-center gap-2.5 px-6 border-b border-stone-200/80 hover:bg-stone-100/50 transition">
             <div className="w-8 h-8 rounded-full bg-[#6B1724] text-[#E8C582] flex items-center justify-center text-sm shadow-sm">
               <i className="fa-solid fa-scale-balanced"></i>
@@ -48,24 +51,27 @@ export default function AuditLedger() {
         </div>
       </aside>
 
-      <main className="flex-1 min-h-screen w-full flex flex-col bg-[#FAF7F2] overflow-hidden">
-        <header className="h-16 bg-white border-b border-stone-200/80 px-8 flex items-center justify-between shrink-0 shadow-sm w-full">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-stone-800">Audit Ledger — <span className="font-mono text-[#6B1724]">#NY-1048</span></h1>
-              <Link to="/petition-detail" className="text-xs text-[#6B1724] font-semibold hover:underline flex items-center gap-1"><i className="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> View Petition</Link>
+      <main className="flex-1 min-w-0 h-full flex flex-col bg-[#FAF7F2] overflow-hidden">
+        <header className="min-h-16 bg-white border-b border-stone-200/80 px-4 md:px-8 py-2 flex items-center justify-between gap-2 shrink-0 shadow-sm w-full">
+          <div className="flex items-center min-w-0">
+            <MobileNavToggle onClick={() => setNavOpen(true)} />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-2">
+                <h1 className="text-base md:text-lg font-bold text-stone-800">Audit Ledger — <span className="font-mono text-[#6B1724]">#NY-1048</span></h1>
+                <Link to="/petition-detail" className="text-xs text-[#6B1724] font-semibold hover:underline flex items-center gap-1"><i className="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> View Petition</Link>
+              </div>
+              <p className="text-xs text-stone-500 hidden sm:block">Cryptographically signed and tamper-evident event log</p>
             </div>
-            <p className="text-xs text-stone-500">Cryptographically signed and tamper-evident event log</p>
           </div>
-          <button onClick={runHashVerification} className={`px-5 py-2.5 text-white rounded-xl text-sm font-semibold shadow-sm transition flex items-center gap-1.5 ${verifying ? 'bg-amber-500' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
-            <i className="fa-solid fa-shield-check"></i> <span>{verifyText}</span>
+          <button onClick={runHashVerification} className={`px-3 sm:px-5 py-2.5 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition flex items-center gap-1.5 shrink-0 ${verifying ? 'bg-amber-500' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
+            <i className="fa-solid fa-shield-check"></i> <span className="hidden sm:inline">{verifyText}</span>
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 w-full">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 w-full">
           <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm overflow-hidden w-full">
             <div className="overflow-x-auto w-full">
-              <table className="w-full text-left text-sm">
+              <table className="w-full min-w-[800px] text-left text-sm">
                 <thead className="bg-[#FAF5EE] border-b border-stone-200 text-stone-500 font-semibold uppercase text-xs">
                   <tr><th className="py-4 px-6">Timestamp</th><th className="py-4 px-4">State Event</th><th className="py-4 px-4">Actor</th><th className="py-4 px-4">Previous Hash</th><th className="py-4 px-6">SHA-256 Hash</th><th className="py-4 px-4 text-right">Copy</th></tr>
                 </thead>
@@ -73,13 +79,13 @@ export default function AuditLedger() {
                   <tr className="hover:bg-stone-50 transition"><td className="py-4 px-6 text-stone-600">12 Oct 10:30</td><td className="py-4 px-4 font-sans"><span className="px-2.5 py-1 rounded text-xs bg-blue-50 text-blue-700 border border-blue-200 font-bold">Filed</span></td><td className="py-4 px-4 font-sans text-stone-700">Student (Concealed)</td><td className="py-4 px-4 text-stone-400">0000...0000</td><td className="py-4 px-6 text-[#6B1724] font-bold">a2f4c918...4b0d</td><td className="py-4 px-4 text-right"><button onClick={() => copyHash('a2f4c91834e78901ba32f9124b0de412')} className="text-stone-400 hover:text-[#6B1724] p-2"><i className="fa-solid fa-copy"></i></button></td></tr>
                   <tr className="hover:bg-stone-50 transition"><td className="py-4 px-6 text-stone-600">12 Oct 14:15</td><td className="py-4 px-4 font-sans"><span className="px-2.5 py-1 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200 font-bold">Assigned</span></td><td className="py-4 px-4 font-sans text-stone-700">ICC Officer #04</td><td className="py-4 px-4 text-stone-400">a2f4...4b0d</td><td className="py-4 px-6 text-[#6B1724] font-bold">9cfe8812...3f1a</td><td className="py-4 px-4 text-right"><button onClick={() => copyHash('9cfe88120019bf4523e167823f1a9411')} className="text-stone-400 hover:text-[#6B1724] p-2"><i className="fa-solid fa-copy"></i></button></td></tr>
                   <tr className="hover:bg-stone-50 transition"><td className="py-4 px-6 text-stone-600">13 Oct 09:00</td><td className="py-4 px-4 font-sans"><span className="px-2.5 py-1 rounded text-xs bg-purple-50 text-purple-700 border border-purple-200 font-bold">In Review</span></td><td className="py-4 px-4 font-sans text-stone-700">Formal Committee</td><td className="py-4 px-4 text-stone-400">9cfe...3f1a</td><td className="py-4 px-6 text-[#6B1724] font-bold">4a37b120...9c2d</td><td className="py-4 px-4 text-right"><button onClick={() => copyHash('4a37b1207865ae9901dc11829c2d8291')} className="text-stone-400 hover:text-[#6B1724] p-2"><i className="fa-solid fa-copy"></i></button></td></tr>
-                  <tr className="hover:bg-stone-50 transition"><td className="py-4 px-6 text-stone-600">13 Oct 15:20</td><td className="py-4 px-4 font-sans"><span className="px-2.5 py-1 rounded text-xs bg-stone-100 text-stone-700 border border-stone-200 font-bold">Evidence Added</span></td><td className="py-4 px-4 font-sans text-stone-700">Student</td><td className="py-4 px-4 text-stone-400">4a37...9c2d</td><td className="py-4 px-6 text-[#6B1724] font-bold">7fdc5501...0a1f</td><td className="py-4 px-4 text-right"><button onClick={() => copyHash('7fdc55019043ac334412ef900a1fc410')} className="text-stone-400 hover:text-[#6B1724] p-2"><i className="fa-solid fa-copy"></i></button></td></tr>
+                  <tr className="hover:bg-stone-50 transition"><td className="py-4 px-6 text-stone-600">13 Oct 15:20</td><td className="py-4 px-4 font-sans"><span className="px-2.5 py-1 rounded text-xs bg-stone-100 text-stone-700 border border-stone-200 font-bold whitespace-nowrap">Evidence Added</span></td><td className="py-4 px-4 font-sans text-stone-700">Student</td><td className="py-4 px-4 text-stone-400">4a37...9c2d</td><td className="py-4 px-6 text-[#6B1724] font-bold">7fdc5501...0a1f</td><td className="py-4 px-4 text-right"><button onClick={() => copyHash('7fdc55019043ac334412ef900a1fc410')} className="text-stone-400 hover:text-[#6B1724] p-2"><i className="fa-solid fa-copy"></i></button></td></tr>
                 </tbody>
               </table>
             </div>
-            <div className="p-5 bg-emerald-50 border-t border-emerald-200 flex items-center justify-between text-sm text-emerald-900">
+            <div className="p-4 md:p-5 bg-emerald-50 border-t border-emerald-200 flex flex-col md:flex-row md:items-center justify-between gap-3 text-sm text-emerald-900">
               <div className="flex items-center gap-3"><i className="fa-solid fa-circle-check text-emerald-600 text-xl"></i><div><p className="font-bold text-emerald-900 text-base">Chain Verified & Immutable</p><p className="text-sm text-emerald-700">All 4 state transitions are cryptographically valid. No tampering detected.</p></div></div>
-              <span className="text-xs font-mono bg-white px-4 py-1.5 rounded-lg border border-emerald-300 font-bold text-emerald-800">Zero Tamper Risk</span>
+              <span className="self-start md:self-auto text-xs font-mono bg-white px-4 py-1.5 rounded-lg border border-emerald-300 font-bold text-emerald-800 whitespace-nowrap">Zero Tamper Risk</span>
             </div>
           </div>
         </div>
