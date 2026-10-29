@@ -6,6 +6,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import HomePage from "../pages/HomePage";
 import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
+import VerifyOtpPage from "../pages/VerifyOtpPage";
 import AuthorityLogin from "../pages/AuthorityLogin";
 import AuthorityRegister from "../pages/AuthorityRegister";
 import ForgotPassword from "../pages/ForgotPassword";
@@ -21,13 +22,6 @@ import AdminDashboard from "../pages/AdminDashboard";
 import AdminAuthorityRequests from "../pages/AdminAuthorityRequests";
 import AuditLedger from "../pages/AuditLedger";
 import PublicTransparency from "../pages/PublicTransparency";
-import ProtectedRoute from "./ProtectedRoute";
-
-// ✅ FIX 1: Correct Import - Check your file name
-// Tumhare project me file ka naam OfficerPetitions.jsx hai ya AssignedPetitions.jsx?
-// Jo bhi hai usko yaha lagao. Neeche 2 option diye hai, ek ko uncomment karo.
-import AssignedPetitions from "../pages/AdminAuthorityRequests"; 
-// import AssignedPetitions from "../pages/AssignedPetitions"; 
 
 export default function AppRoutes() {
   return (
@@ -38,6 +32,7 @@ export default function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/signup" element={<RegisterPage />} />
+      <Route path="/verify-otp" element={<VerifyOtpPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/forget-password" element={<ForgotPassword />} />
       <Route path="/authority-login" element={<AuthorityLogin />} />
@@ -50,33 +45,157 @@ export default function AppRoutes() {
       <Route path="/transparency" element={<PublicTransparency />} />
       <Route path="/ledger" element={<AuditLedger />} />
 
-      {/* Protected Student / User Pages */}
-      <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
-      <Route path="/file-complaint" element={<ProtectedRoute><FileComplaint /></ProtectedRoute>} />
-      <Route path="/upload-complaint" element={<ProtectedRoute><FileComplaint /></ProtectedRoute>} />
-      <Route path="/file-petition" element={<ProtectedRoute><FileComplaint /></ProtectedRoute>} />
-      <Route path="/new-petition" element={<ProtectedRoute><FileComplaint /></ProtectedRoute>} />
-      <Route path="/my-petitions" element={<ProtectedRoute><MyPetitions /></ProtectedRoute>} />
-      <Route path="/petition-detail" element={<ProtectedRoute><PetitionDetail /></ProtectedRoute>} />
-      <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+      {/* Protected Student / User Pages (Officers & Admin cannot access) */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute roleRequired="user">
+            <UserDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/file-complaint"
+        element={
+          <ProtectedRoute roleRequired="user">
+            <FileComplaint />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/upload-complaint"
+        element={
+          <ProtectedRoute roleRequired="user">
+            <FileComplaint />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/file-petition"
+        element={
+          <ProtectedRoute roleRequired="user">
+            <FileComplaint />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/new-petition"
+        element={
+          <ProtectedRoute roleRequired="user">
+            <FileComplaint />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-petitions"
+        element={
+          <ProtectedRoute roleRequired="user">
+            <MyPetitions />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/petition-detail"
+        element={
+          <ProtectedRoute>
+            <PetitionDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute roleRequired="user">
+            <Notifications />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* Protected Officer / Authority Pages */}
-      <Route path="/officerdash" element={<ProtectedRoute redirectTo="/authority/login" roleRequired="officer"><OfficerDashboard /></ProtectedRoute>} />
-      <Route path="/authority/dashboard" element={<ProtectedRoute redirectTo="/authority/login" roleRequired="officer"><OfficerDashboard /></ProtectedRoute>} />
-      
-      <Route path="/officer/petitions" element={<ProtectedRoute redirectTo="/authority/login" roleRequired="officer"><AssignedPetitions /></ProtectedRoute>} />
-      <Route path="/officer/analytics" element={<ProtectedRoute redirectTo="/authority/login" roleRequired="officer"><PublicTransparency /></ProtectedRoute>} />
-      <Route path="/officer/ledger" element={<ProtectedRoute redirectTo="/authority/login" roleRequired="officer"><AuditLedger /></ProtectedRoute>} />
-      
-      {/* ✅ FIX 2: Officer Notifications ke liye alag page - User wala mat use karo */}
-      {/* Agar tumhare paas OfficerNotifications.jsx nahi hai to filhal OfficerDashboard hi dikhega */}
-      <Route path="/officer/notifications" element={<ProtectedRoute redirectTo="/authority/login" roleRequired="officer"><OfficerDashboard /></ProtectedRoute>} />
+      {/* Protected Officer / Authority Pages (Redirects unauthorized visitors to /authority/login) */}
+      <Route
+        path="/officerdash"
+        element={
+          <ProtectedRoute redirectTo="/authority/login" roleRequired="officer">
+            <OfficerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/authority/dashboard"
+        element={
+          <ProtectedRoute redirectTo="/authority/login" roleRequired="officer">
+            <OfficerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/officer/petitions"
+        element={
+          <ProtectedRoute redirectTo="/authority/login" roleRequired="officer">
+            <OfficerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/officer/analytics"
+        element={
+          <ProtectedRoute redirectTo="/authority/login" roleRequired="officer">
+            <PublicTransparency />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/officer/ledger"
+        element={
+          <ProtectedRoute redirectTo="/authority/login" roleRequired="officer">
+            <AuditLedger />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/officer/notifications"
+        element={
+          <ProtectedRoute redirectTo="/authority/login" roleRequired="officer">
+            <Notifications />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/officer/petition-detail"
+        element={
+          <ProtectedRoute redirectTo="/authority/login" roleRequired="officer">
+            <PetitionDetail />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* Admin */}
-      <Route path="/admin" element={<ProtectedRoute redirectTo="/authority/login" roleRequired="admin"><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/dashboard" element={<ProtectedRoute redirectTo="/authority/login" roleRequired="admin"><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/authority-requests" element={<ProtectedRoute redirectTo="/authority/login" roleRequired="admin"><AdminAuthorityRequests /></ProtectedRoute>} />
+      {/* Protected Institutional Administrator Pages (Redirects unauthorized visitors to /authority/login) */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute redirectTo="/authority/login" roleRequired="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/dashboard"
+        element={
+          <ProtectedRoute redirectTo="/authority/login" roleRequired="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/authority-requests"
+        element={
+          <ProtectedRoute redirectTo="/authority/login" roleRequired="admin">
+            <AdminAuthorityRequests />
+          </ProtectedRoute>
+        }
+      />
 
+      {/* Fallback 404 */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

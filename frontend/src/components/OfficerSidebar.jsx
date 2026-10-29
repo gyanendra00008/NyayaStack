@@ -57,12 +57,12 @@ export default function OfficerSidebar({ name = "Authority Officer", designation
           )}
 
           {/* Switch to Student View - Ab ye Login pe bhejega, direct dashboard nahi */}
-          <button
+          {/* <button
             onClick={handleSwitchToStudent}
             className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-emerald-900 bg-emerald-100/50 hover:bg-emerald-100 transition mt-4 border-t border-emerald-200/50"
           >
             <i className="fa-solid fa-user-graduate w-4 text-emerald-700"></i> Switch to Student View
-          </button>
+          </button> */}
         </nav>
       </div>
 
