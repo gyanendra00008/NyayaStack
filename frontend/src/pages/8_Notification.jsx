@@ -1,6 +1,24 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import OfficerSidebar from '../components/OfficerSidebar';
 
 const Notifications = () => {
+  const { pathname } = useLocation();
+const isOfficerRoute = pathname.startsWith('/officer');
+
+const officerName = localStorage.getItem('nyaya_user_name') || 'Authority Officer';
+const officerInitials =
+  officerName.split(/[\s_.-]+/).map((p) => p[0]).filter(Boolean).join('').slice(0, 2).toUpperCase() || 'AO';
+
+const handleOfficerLogout = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('authorityToken');
+  localStorage.removeItem('nyaya_logged_user');
+  localStorage.removeItem('nyaya_user_name');
+  localStorage.removeItem('nyaya_user_role');
+  sessionStorage.clear();
+  window.location.href = '/authority/login';
+};
   const [activeTab, setActiveTab] = useState('all');
   const [notifs, setNotifs] = useState([
     { id: 1, type: 'update', dot: 'bg-amber-500', title: 'Your complaint #NY-1048 is now In Review', idText: '#NY-1048', time: '10m ago', desc: 'Assigned to Internal Complaints Committee (ICC). Formal inquiry initiated.', isUnread: true },
@@ -27,7 +45,16 @@ const Notifications = () => {
   };
 
   return (
+
     <div className="text-stone-800 flex h-screen w-screen overflow-hidden antialiased" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", backgroundColor: '#FAF7F2' }}>
+      {isOfficerRoute ? (
+  <OfficerSidebar
+    name={officerName}
+    designation="Officer"
+    initials={officerInitials}
+    onLogout={handleOfficerLogout}
+  />
+) : (
       <aside className="w-64 h-screen bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0">
         <div className="flex flex-col h-full">
           <a href="1_landing.html" className="h-16 flex items-center gap-2.5 px-6 border-b border-stone-200/80 shrink-0">
@@ -52,10 +79,11 @@ const Notifications = () => {
           </div>
         </div>
       </aside>
+)}
 
       <main className="flex-1 h-screen flex flex-col overflow-hidden bg-[#FAF7F2] w-full">
         <header className="h-16 bg-white border-b border-stone-200/80 px-8 flex items-center justify-between shrink-0 shadow-sm w-full">
-          <div><h1 className="text-lg font-bold">Notifications</h1><p className="text-xs text-stone-500">Real-time status updates and SLA alerts</p></div>
+          <h1 className="text-lg font-bold">Notifications [{pathname}]</h1>
           <button onClick={markAllAsRead} className="text-xs text-[#6B1724] font-bold hover:underline flex items-center gap-1.5"><i className="fa-solid fa-check-double"></i> Mark all read</button>
         </header>
 

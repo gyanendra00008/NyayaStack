@@ -28,9 +28,9 @@ export default function OfficerDashboard() {
               <i className="fa-solid fa-chart-column w-4"></i> Analytics & Trends
             </a>
             <div className="pt-3 border-t border-stone-200/60 mt-3">
-              <a href="/dashboard" className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-emerald-900 bg-emerald-100/50 hover:bg-emerald-100 transition text-[11px]">
-                <i className="fa-solid fa-user-graduate w-4 text-emerald-700"></i> Switch to Student View
-              </a>
+            <a href="/login" onClick={()=>{localStorage.clear();}} className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-emerald-900 bg-emerald-100/50 hover:bg-emerald-100 transition text-[11px]">
+           <i className="fa-solid fa-user-graduate w-4 text-emerald-700"></i> Switch to Student View
+           </a>
             </div>
           </nav>
         </div>

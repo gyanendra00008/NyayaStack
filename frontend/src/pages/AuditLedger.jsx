@@ -1,8 +1,30 @@
+import { Link, useLocation } from "react-router-dom";
+import OfficerSidebar from "../components/OfficerSidebar";
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import logo from '../assets/logo.png';
+import anonymousAvatar from '../assets/anonymous-avatar.svg';
 
 export default function AuditLedger() {
-  const isOfficer = localStorage.getItem('nyaya_user_role') === 'officer' || localStorage.getItem('nyaya_user_role') === 'admin';
+  const { pathname } = useLocation();
+  const isOfficerRoute = pathname.startsWith("/officer");
+
+  const officerName = localStorage.getItem("nyaya_user_name") || "Authority Officer";
+  const officerInitials =
+    officerName.split(/[\s_.-]+/).map((p) => p[0]).filter(Boolean).join("").slice(0, 2).toUpperCase() || "AO";
+
+  const userName = localStorage.getItem("nyaya_user_name") || localStorage.getItem("nyaya_logged_user") || "User";
+  const userRoll = localStorage.getItem("nyaya_user_roll") || localStorage.getItem("nyaya_logged_user") || "STU-001";
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("authorityToken");
+    localStorage.removeItem("nyaya_logged_user");
+    localStorage.removeItem("nyaya_user_name");
+    localStorage.removeItem("nyaya_user_role");
+    sessionStorage.clear();
+    window.location.href = isOfficerRoute ? "/authority/login" : "/login";
+  };
+
   const [verifyText, setVerifyText] = useState("Verify Chain");
   const [verifying, setVerifying] = useState(false);
 
@@ -22,41 +44,75 @@ export default function AuditLedger() {
     }, 800);
   };
 
-  return (
-    <div className="text-stone-800 flex min-h-screen w-full overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+  const isActive = (path) => pathname === path;
+  const linkBase = "flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition";
+  const activeCls = "bg-[#6B1724] text-white shadow-sm";
+  const inactiveCls = "text-stone-600 hover:bg-stone-200/60";
 
-      <aside className="w-72 h-screen bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 select-none z-10 sticky top-0">
-        <div>
-          <Link to="/dashboard" className="h-16 flex items-center gap-2.5 px-6 border-b border-stone-200/80 hover:bg-stone-100/50 transition">
-            <div className="w-8 h-8 rounded-full bg-[#6B1724] text-[#E8C582] flex items-center justify-center text-sm shadow-sm">
-              <i className="fa-solid fa-scale-balanced"></i>
+  return (
+    <div className="text-stone-800 flex h-screen w-full overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+
+      {isOfficerRoute ? (
+        <OfficerSidebar
+          name={officerName}
+          designation="Officer"
+          initials={officerInitials}
+          onLogout={handleLogout}
+        />
+      ) : (
+        <aside className="w-64 h-screen bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 select-none z-10 sticky top-0">
+          <div>
+            <Link to="/dashboard" className="h-16 flex items-center gap-2.5 px-6 border-b border-stone-200/80 hover:bg-stone-100/50 transition">
+              <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
+                <img src={logo} alt="NyayaStack" className="h-full w-full object-cover scale-[1.3]" />
+              </div>
+              <span className="font-bold text-lg text-[#6B1724]" style={{ fontFamily: "Cinzel, serif" }}>NyayaStack</span>
+            </Link>
+            <nav className="p-4 space-y-1 text-xs font-semibold">
+              <Link to="/dashboard" className={`${linkBase} ${isActive("/dashboard") ? activeCls : inactiveCls}`}>
+                <i className="fa-solid fa-house w-4"></i> Dashboard
+              </Link>
+              <Link to="/file-complaint" className={`${linkBase} ${isActive("/file-complaint") ? activeCls : inactiveCls}`}>
+                <i className="fa-solid fa-file-circle-plus w-4"></i> File a Complaint
+              </Link>
+              <Link to="/my-petitions" className={`${linkBase} ${isActive("/my-petitions") ? activeCls : inactiveCls}`}>
+                <i className="fa-solid fa-folder-open w-4"></i> My Petitions
+              </Link>
+              <Link to="/petition-detail" className={`${linkBase} ${isActive("/petition-detail") ? activeCls : inactiveCls}`}>
+                <i className="fa-solid fa-comments w-4"></i> Inquiry Chat
+              </Link>
+              <Link to="/notifications" className={`${linkBase} ${isActive("/notifications") ? activeCls : inactiveCls}`}>
+                <i className="fa-solid fa-bell w-4"></i> Notifications
+              </Link>
+              <Link to="/ledger" className={`${linkBase} ${activeCls}`}>
+                <i className="fa-solid fa-fingerprint w-4"></i> Audit Ledger
+              </Link>
+              <Link to="/publictrans" className={`${linkBase} ${isActive("/publictrans") ? activeCls : inactiveCls}`}>
+                <i className="fa-solid fa-chart-pie w-4"></i> Public Transparency
+              </Link>
+            </nav>
+          </div>
+          <div className="p-4 border-t border-stone-200/80 flex items-center justify-between bg-[#F0E8DC]">
+            <div className="flex items-center gap-2.5">
+              <img src={anonymousAvatar} alt="User" className="w-8 h-8 rounded-full object-cover border border-[#6B1724]" />
+              <div>
+                <p className="text-xs font-bold text-stone-800">{userName}</p>
+                <p className="text-[10px] text-stone-500 font-mono">{userRoll}</p>
+              </div>
             </div>
-            <span className="font-bold text-lg text-[#6B1724]" style={{ fontFamily: "Cinzel, serif" }}>NyayaStack</span>
-          </Link>
-          <nav className="p-4 space-y-1 text-sm font-semibold">
-            <Link to="/dashboard" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition"><i className="fa-solid fa-house w-4"></i> Dashboard</Link>
-            {!isOfficer && <Link to="/file-complaint" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition"><i className="fa-solid fa-file-circle-plus w-4 text-[#6B1724]"></i> File a Complaint</Link>}
-            <Link to="/my-petitions" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition"><i className="fa-solid fa-folder-open w-4"></i> My Petitions</Link>
-            <Link to="/petition-detail" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition"><i className="fa-solid fa-comments w-4"></i> Inquiry Chat</Link>
-            <Link to="/ledger" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#6B1724] text-white shadow-sm"><i className="fa-solid fa-fingerprint w-4"></i> Audit Ledger</Link>
-            <Link to="/publictrans" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition"><i className="fa-solid fa-chart-pie w-4"></i> Public Transparency</Link>
-            <div className="pt-3 border-t border-stone-200/60 mt-3">
-              <Link to="/officerdash" className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-amber-900 bg-amber-100/50 hover:bg-amber-100 transition text-[11px]"><i className="fa-solid fa-user-shield w-4 text-amber-700"></i> Switch to Officer View</Link>
-            </div>
-          </nav>
-        </div>
-        <div className="p-4 border-t border-stone-200/80 flex items-center gap-2 text-xs text-stone-500 bg-[#F0E8DC]">
-          <i className="fa-solid fa-shield text-emerald-600 text-base"></i>
-          <div><p className="font-bold text-stone-800 text-[11px]">Merkle Tree Verified</p><p className="text-[9px] text-stone-400 font-mono">Root: 8e4b...92fa</p></div>
-        </div>
-      </aside>
+            <button onClick={handleLogout} title="Logout" className="text-stone-400 hover:text-[#6B1724] p-1.5 transition">
+              <i className="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+            </button>
+          </div>
+        </aside>
+      )}
 
       <main className="flex-1 min-h-screen w-full flex flex-col bg-[#FAF7F2] overflow-hidden">
         <header className="h-16 bg-white border-b border-stone-200/80 px-8 flex items-center justify-between shrink-0 shadow-sm w-full">
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold text-stone-800">Audit Ledger — <span className="font-mono text-[#6B1724]">#NY-1048</span></h1>
-              <Link to="/petition-detail" className="text-xs text-[#6B1724] font-semibold hover:underline flex items-center gap-1"><i className="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> View Petition</Link>
+              <Link to={isOfficerRoute ? "/officer/petition-detail" : "/petition-detail"} className="text-xs text-[#6B1724] font-semibold hover:underline flex items-center gap-1"><i className="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> View Petition</Link>
             </div>
             <p className="text-xs text-stone-500">Cryptographically signed and tamper-evident event log</p>
           </div>

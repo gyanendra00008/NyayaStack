@@ -1,52 +1,13 @@
 import React from "react";
-   import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";
+import OfficerSidebar from "../components/OfficerSidebar";
 
 export default function OfficerDashboard() {
   return (
     <div className="text-stone-800 flex h-screen w-screen overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      
+
       {/* SIDEBAR */}
-      <aside className="w-64 h-full bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 select-none z-10">
-        <div>
-          <a href="1_landing.html" className="h-16 flex items-center gap-2.5 px-6 border-b border-stone-200/80 hover:bg-stone-100/50 transition">
-            <div className="w-8 h-8 rounded-full bg-[#6B1724] text-[#E8C582] flex items-center justify-center text-sm shadow-sm">
-              <i className="fa-solid fa-scale-balanced"></i>
-            </div>
-            <span className="font-bold text-lg text-[#6B1724]" style={{ fontFamily: "Cinzel, serif" }}>NyayaStack</span>
-          </a>
-          <nav className="p-4 space-y-1 text-xs font-semibold">
-            <a href="/officerdash" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#6B1724] text-white shadow-sm">
-              <i className="fa-solid fa-gauge-high w-4"></i> Officer Console
-            </a>
-            <a href="/my-petitions" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-list-check w-4"></i> Assigned Petitions
-            </a>
-            <a href="/ledger" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-fingerprint w-4 text-[#6B1724]"></i> Audit Ledger
-            </a>
-            <a href="/publictrans" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-chart-column w-4"></i> Analytics & Trends
-            </a>
-            <div className="pt-3 border-t border-stone-200/60 mt-3">
-              <a href="/dashboard" className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-emerald-900 bg-emerald-100/50 hover:bg-emerald-100 transition text-[11px]">
-                <i className="fa-solid fa-user-graduate w-4 text-emerald-700"></i> Switch to Student View
-              </a>
-            </div>
-          </nav>
-        </div>
-        <div className="p-4 border-t border-stone-200/80 flex items-center justify-between bg-[#F0E8DC]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-[#6B1724] text-white flex items-center justify-center font-bold text-xs shadow-sm">RV</div>
-            <div>
-              <p className="text-xs font-bold text-stone-800">Dr. Rajesh Varma</p>
-              <p className="text-[10px] text-stone-500 font-mono">Grievance Officer</p>
-            </div>
-          </div>
-          <a href="2_login.html" title="Logout" className="text-stone-400 hover:text-[#6B1724] p-1.5 transition">
-            <i className="fa-solid fa-arrow-right-from-bracket text-xs"></i>
-          </a>
-        </div>
-      </aside>
+      <OfficerSidebar />
 
       {/* MAIN */}
       <main className="flex-1 h-full flex flex-col overflow-hidden bg-[#FAF7F2]">
@@ -114,7 +75,7 @@ export default function OfficerDashboard() {
           </div>
 
           <div className="bg-white rounded-2xl border shadow-sm p-6 space-y-4">
-            <div className="flex items-center justify-between"><h2 className="text-sm font-bold">My Assigned Petitions</h2><a href="/my-petitions" className="text-xs text-[#6B1724] font-semibold">View All →</a></div>
+            <div className="flex items-center justify-between"><h2 className="text-sm font-bold">My Assigned Petitions</h2><Link to="/officer/petitions" className="text-xs text-[#6B1724] font-semibold">View All →</Link></div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead><tr className="border-b text-stone-400 uppercase text-[10px]"><th className="py-2.5 px-3">Petition ID</th><th className="py-2.5 px-3">Category</th><th className="py-2.5 px-3">Priority</th><th className="py-2.5 px-3">Filed On</th><th className="py-2.5 px-3">SLA Deadline</th><th className="py-2.5 px-3 text-right">Action</th></tr></thead>
