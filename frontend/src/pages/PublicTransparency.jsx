@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+
 import logo from '../assets/logo.png';
+import { Link, useLocation } from 'react-router-dom';
+import OfficerSidebar from '../components/OfficerSidebar';
 import { complaintApi, DEFAULT_CATEGORIES } from '../services/api';
 
 const STATUS_BADGES = {
@@ -168,7 +170,23 @@ export default function PublicTransparency() {
   // Check login state for contextual navigation
   const isLoggedIn = Boolean(localStorage.getItem('token') || sessionStorage.getItem('token'));
   const isOfficer = localStorage.getItem('nyaya_user_role') === 'officer' || localStorage.getItem('nyaya_user_role') === 'admin';
+  const { pathname } = useLocation();
+const isOfficerRoute = pathname.startsWith('/officer');
+const ledgerPath = isOfficerRoute ? '/officer/ledger' : '/ledger';
 
+const officerName = localStorage.getItem('nyaya_user_name') || 'Authority Officer';
+const officerInitials =
+  officerName.split(/[\s_.-]+/).map((p) => p[0]).filter(Boolean).join('').slice(0, 2).toUpperCase() || 'AO';
+
+const handleOfficerLogout = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('authorityToken');
+  localStorage.removeItem('nyaya_logged_user');
+  localStorage.removeItem('nyaya_user_name');
+  localStorage.removeItem('nyaya_user_role');
+  sessionStorage.clear();
+  window.location.href = '/authority/login';
+};
   // Load live data from backend & local storage
   useEffect(() => {
     let isMounted = true;
@@ -360,6 +378,14 @@ export default function PublicTransparency() {
       style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
     >
       {/* LEFT SIDEBAR */}
+      {isOfficerRoute ? (
+  <OfficerSidebar
+    name={officerName}
+    designation="Officer"
+    initials={officerInitials}
+    onLogout={handleOfficerLogout}
+  />
+) : (
       <aside className="w-64 h-full bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 select-none z-10">
         <div>
           <Link
@@ -423,7 +449,9 @@ export default function PublicTransparency() {
             </div>
           </div>
         </div>
+        
       </aside>
+)}
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 h-full flex flex-col overflow-hidden bg-[#FAF7F2]">
@@ -850,7 +878,7 @@ export default function PublicTransparency() {
                     Displaying <strong>{filteredComplaints.length}</strong> of <strong>{complaints.length}</strong> total institutional petitions
                   </span>
                   <div className="flex items-center gap-3">
-                    <Link to="/ledger" className="text-[#6B1724] font-semibold hover:underline flex items-center gap-1">
+                    <Link to={ledgerPath} className="text-[#6B1724] font-semibold hover:underline flex items-center gap-1">
                       <i className="fa-solid fa-fingerprint"></i> Inspect SHA-256 Ledger
                     </Link>
                   </div>
@@ -1122,7 +1150,7 @@ export default function PublicTransparency() {
                     </div>
                   </div>
                   <Link
-                    to="/ledger"
+                    to={ledgerPath}
                     className="px-4 py-2 bg-[#6B1724] hover:bg-[#54121C] text-white rounded-xl text-xs font-semibold shadow-xs transition shrink-0"
                   >
                     Open Audit Ledger
@@ -1255,7 +1283,7 @@ export default function PublicTransparency() {
                 </div>
               </div>
               <Link
-                to="/ledger"
+                to={ledger}
                 className="text-xs font-semibold text-[#6B1724] hover:underline"
               >
                 Verify on Ledger &rarr;
