@@ -79,9 +79,6 @@ export default function AuditLedger() {
               <Link to="/my-petitions" className={`${linkBase} ${isActive("/my-petitions") ? activeCls : inactiveCls}`}>
                 <i className="fa-solid fa-folder-open w-4"></i> My Petitions
               </Link>
-              <Link to="/petition-detail" className={`${linkBase} ${isActive("/petition-detail") ? activeCls : inactiveCls}`}>
-                <i className="fa-solid fa-comments w-4"></i> Inquiry Chat
-              </Link>
               <Link to="/notifications" className={`${linkBase} ${isActive("/notifications") ? activeCls : inactiveCls}`}>
                 <i className="fa-solid fa-bell w-4"></i> Notifications
               </Link>

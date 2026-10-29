@@ -1,11 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const crypto = require('crypto');
 const healthRoutes = require('./routes/health.routes.js');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler.js');
 const authRoutes = require('./routes/auth.routes.js');
 const adminRoutes = require('./routes/admin.routes.js');
 const complaintRoutes = require('./routes/complaint.routes.js');
+const notificationRoutes = require('./routes/notification.routes.js');
+const classifyComplaintRoutes = require('./routes/complaintClassifier.routes.js');
 const { generalLimiter } = require('./middleware/rateLimit.middleware.js');
 
 const app = express();
@@ -19,15 +22,29 @@ if (process.env.NODE_ENV === 'production' || process.env.TRUST_PROXY) {
 const corsOptions = {
   origin: (origin, callback) => {
     // Parse allowed origins dynamically from CORS_ORIGIN environment variable
-    const allowedOrigins = process.env.CORS_ORIGIN
+    const envOrigins = process.env.CORS_ORIGIN
       ? process.env.CORS_ORIGIN.split(',').map((item) => item.trim()).filter(Boolean)
       : [];
+
+    // Safe default origins for local dev and standard production domains
+    const defaultAllowed = [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:3000',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:5174',
+      'http://127.0.0.1:3000',
+    ];
+    const allowedOrigins = [...new Set([...envOrigins, ...defaultAllowed])];
 
     // Allow non-browser requests (e.g. server-to-server, curl) with no Origin header
     if (!origin) {
       return callback(null, true);
     }
-    if (allowedOrigins.includes(origin)) {
+    if (
+      allowedOrigins.includes(origin) ||
+      /^https:\/\/nyayastack.*\.vercel\.app$/.test(origin)
+    ) {
       return callback(null, true);
     }
     return callback(null, false);
@@ -51,6 +68,46 @@ app.use('/api/admin', adminRoutes);
 app.use('/admin', adminRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/petitions', complaintRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/notifications', notificationRoutes);
+app.use('/api/classify-complaint', classifyComplaintRoutes);
+
+// External Cron Webhook trigger for Render / external cron schedulers
+app.post('/api/escalate-cron', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const bearerKey = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+  const cronKey = req.headers['x-cron-key'] || bearerKey || req.query.key;
+
+  if (!cronKey || typeof cronKey !== 'string') {
+    return res.status(401).json({ success: false, message: 'Unauthorized: missing cron secret key' });
+  }
+
+  const expectedKey =
+    process.env.CRON_SECRET ||
+    (process.env.NODE_ENV !== 'production' ? 'nyayastack-escalation-cron-secret' : null);
+
+  if (!expectedKey) {
+    return res.status(503).json({
+      success: false,
+      message: 'CRON_SECRET is not configured on this server',
+    });
+  }
+
+  const bufProvided = Buffer.from(cronKey);
+  const bufExpected = Buffer.from(expectedKey);
+
+  if (bufProvided.length !== bufExpected.length || !crypto.timingSafeEqual(bufProvided, bufExpected)) {
+    return res.status(401).json({ success: false, message: 'Unauthorized: invalid cron secret key' });
+  }
+
+  try {
+    const { escalateDueComplaints } = require('./services/escalation.service.js');
+    const summary = await escalateDueComplaints();
+    return res.status(200).json({ success: true, summary });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 // Error handlers
 app.use(notFoundHandler);

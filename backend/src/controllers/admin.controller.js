@@ -386,10 +386,30 @@ const getAdminStats = async (req, res) => {
   }
 };
 
+const { escalateDueComplaints } = require("../services/escalation.service.js");
+
+const triggerEscalationProcess = async (req, res) => {
+  try {
+    const summary = await escalateDueComplaints();
+    return res.status(200).json({
+      success: true,
+      message: `Escalation check completed. ${summary.escalated} complaints escalated.`,
+      summary,
+    });
+  } catch (error) {
+    console.error("Error triggering escalation process:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error triggering escalation process",
+    });
+  }
+};
+
 module.exports = {
   getAuthorityRequests,
   getAuthorityRequestById,
   approveAuthorityRequest,
   rejectAuthorityRequest,
   getAdminStats,
+  triggerEscalationProcess,
 };

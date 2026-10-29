@@ -29,8 +29,6 @@ const Complaint = require("../src/models/complaint.models.js");
 const { getStorageConnection, closeConnections } = require("../src/config/db.js");
 
 describe("Vishanti Petition End-to-End Full-Stack Integration Workflow", () => {
-  let mlProcess;
-  const ML_PORT = 8099;
   let backendServer;
   let baseUrl;
   let authToken;
@@ -44,38 +42,7 @@ describe("Vishanti Petition End-to-End Full-Stack Integration Workflow", () => {
     }
     getStorageConnection();
 
-    // 2. Spawn real Python FastAPI ML microservice on port 8099
-    const mlDir = path.resolve(__dirname, "../ML_service");
-    mlProcess = spawn(
-      "python3",
-      ["-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", String(ML_PORT)],
-      { cwd: mlDir, stdio: "ignore" }
-    );
-
-    // Wait for ML service to become healthy
-    process.env.ML_SERVICE_URL = `http://127.0.0.1:${ML_PORT}`;
-    const maxRetries = 25;
-    let mlReady = false;
-
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        const hRes = await fetch(`http://127.0.0.1:${ML_PORT}/health`);
-        if (hRes.ok) {
-          const hJson = await hRes.json();
-          if (hJson.model_loaded) {
-            mlReady = true;
-            break;
-          }
-        }
-      } catch (e) {
-        // ML service not ready yet
-      }
-      await new Promise((r) => setTimeout(r, 400));
-    }
-
-    assert.ok(mlReady, "Python FastAPI ML service must start and report healthy within timeout");
-
-    // 3. Start Express server
+    // 2. Start Express server
     await new Promise((resolve) => {
       backendServer = app.listen(0, () => {
         baseUrl = `http://127.0.0.1:${backendServer.address().port}`;
@@ -85,9 +52,6 @@ describe("Vishanti Petition End-to-End Full-Stack Integration Workflow", () => {
   });
 
   after(async () => {
-    if (mlProcess) {
-      mlProcess.kill("SIGTERM");
-    }
     if (backendServer) {
       await new Promise((resolve) => backendServer.close(resolve));
     }
@@ -159,8 +123,8 @@ describe("Vishanti Petition End-to-End Full-Stack Integration Workflow", () => {
     assert.ok(body.data.includes("Transport"));
   });
 
-  it("Step 4: Real FastAPI ML Service classifies petition title and description", async () => {
-    const res = await fetch(`${baseUrl}/api/complaints/predict-category`, {
+  it("Step 4: AI Classification Service classifies petition title and description", async () => {
+    const res = await fetch(`${baseUrl}/api/classify-complaint`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -172,12 +136,12 @@ describe("Vishanti Petition End-to-End Full-Stack Integration Workflow", () => {
     assert.strictEqual(res.status, 200);
     const body = await res.json();
     assert.strictEqual(body.success, true);
-    assert.strictEqual(body.data.predicted_category, "Hostel");
-    assert.ok(typeof body.data.confidence === "number");
-    assert.ok(body.data.confidence > 0);
+    assert.ok(body.classification);
+    assert.strictEqual(body.classification.category, "Hostel");
+    assert.strictEqual(body.classification.department, "Hostel & Mess");
   });
 
-  it("Step 5: User submits petition with the verified ML category", async () => {
+  it("Step 5: User submits petition with the verified classified category", async () => {
     // Multipart form submission
     const boundary = "---------------------------974767299852498929531610575";
     const body = [

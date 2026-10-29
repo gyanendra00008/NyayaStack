@@ -44,7 +44,7 @@ npm install
 npm run dev
 ```
 
-The API server runs by default on `http://localhost:5000`.
+The API server runs by default on `http://localhost:3000`.
 
 ### 2. Frontend Setup
 

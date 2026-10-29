@@ -15,7 +15,6 @@ const {
   updateComplaintStatus,
   getComplaintChain,
   resolveComplaintChain,
-  predictComplaintCategory,
   getCategories,
   getComplaintById,
   getPublicComplaints,
@@ -33,13 +32,11 @@ router.get("/public/stats", getPublicStats);
 // GET /api/complaints/public - Retrieve public complaint feed (sanitized, public)
 router.get("/public", getPublicComplaints);
 
-// POST /api/complaints/predict-category - Get ML predicted category for title & description
-router.post("/predict-category", predictComplaintCategory);
-
-// POST /api/complaints - Submit a complaint with optional file attachments
+// POST /api/complaints - Submit a complaint with optional file attachments (Students/Users only)
 router.post(
   "/",
   authenticateUser,
+  authorizeRoles("user"),
   preCheckRequestSize,
   handleMulterUpload,
   validateComplaintFields,
@@ -47,19 +44,21 @@ router.post(
   createComplaint
 );
 
-// GET /api/complaints/my - Retrieve authenticated user's complaints with pagination
+// GET /api/complaints/my - Retrieve authenticated user's complaints with pagination (Students/Users only)
 router.get(
   "/my",
   authenticateUser,
+  authorizeRoles("user"),
   validatePaginationQuery,
   getMyComplaints
 );
 
-// GET /api/complaints/sla-summary - Dynamic SLA compliance for the logged-in user
+// GET /api/complaints/sla-summary - Dynamic SLA compliance for the logged-in user (Students/Users only)
 // NOTE: must stay above "/:complaintId" so "sla-summary" is not read as an ID
 router.get(
   "/sla-summary",
   authenticateUser,
+  authorizeRoles("user"),
   getMySlaSummary
 );
 

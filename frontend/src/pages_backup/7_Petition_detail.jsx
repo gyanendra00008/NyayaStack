@@ -123,7 +123,6 @@ const PetitionDetails = () => {
               <i className="fa-solid fa-folder-open w-4"></i> My Petitions
             </a>
             <a className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#6B1724] text-white shadow-sm">
-              <i className="fa-solid fa-comments w-4"></i> Inquiry Chat
             </a>
             <a href="/notifications" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
               <i className="fa-solid fa-bell w-4"></i> Notifications
@@ -228,7 +227,6 @@ const PetitionDetails = () => {
             </div>
           </div>
 
-          {/* Bottom Row: State Machine & Inquiry Chat */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             {/* State Machine Timeline */}
             <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-stone-200/80 shadow-sm space-y-4">
@@ -262,12 +260,10 @@ const PetitionDetails = () => {
               </div>
             </div>
 
-            {/* Inquiry Chat (Two-Way Live Interactive Chat!) */}
             <div className="lg:col-span-7 bg-white rounded-2xl border border-stone-200/80 shadow-sm flex flex-col justify-between overflow-hidden">
               <div className="p-3.5 border-b border-stone-100 bg-[#FAF5EE] flex justify-between items-center text-xs">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span className="font-bold text-stone-800">Inquiry Chat - #NY-1048</span>
                 </div>
                 <span className="text-[10px] text-[#6B1724] bg-rose-100/70 px-2.5 py-0.5 rounded-md font-mono font-bold">Secure Official Channel</span>
               </div>

@@ -15,6 +15,7 @@ const {
 const {
   isExistingUser,
   isUser,
+  setExpectedRole,
   validateUser,
   validateForgotPassword,
   validateVerifyResetOtp,
@@ -40,6 +41,9 @@ router.post("/resend-otp", otpLimiter, resendOtp);
 
 // Login
 router.post("/login", loginLimiter, isUser, login);
+router.post("/user/login", loginLimiter, setExpectedRole("user"), isUser, login);
+router.post("/authority/login", loginLimiter, setExpectedRole("officer"), isUser, login);
+router.post("/admin/login", loginLimiter, setExpectedRole("admin"), isUser, login);
 
 // Forgot Password Flow
 // Step 1: Request OTP by providing username or email

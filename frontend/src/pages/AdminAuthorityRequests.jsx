@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logout } from "../store/slices/authSlice";
 import { adminApi } from "../services/api";
-import OfficerSidebar from "../components/OfficerSidebar";
+import AdminSidebar from "../components/AdminSidebar";
 
 const DEPARTMENTS = [
   "All Departments",
@@ -155,13 +155,13 @@ export default function AdminAuthorityRequests() {
       className="text-stone-800 flex h-screen w-screen overflow-hidden antialiased bg-[#FAF7F2]"
       style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
     >
-      {/* SIDEBAR */}
-<OfficerSidebar
-  name={adminName}
-  designation="Officer"
-  initials={adminInitials}
-  onLogout={handleLogout}
-/>
+      {/* ADMIN SIDEBAR */}
+      <AdminSidebar
+        name={adminName}
+        initials={adminInitials}
+        onLogout={handleLogout}
+        pendingCount={counts.pending}
+      />
 
       {/* MAIN CONTENT */}
       <main className="flex-1 h-full flex flex-col overflow-hidden bg-[#FAF7F2]">

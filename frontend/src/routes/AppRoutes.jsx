@@ -9,6 +9,7 @@ import RegisterPage from "../pages/RegisterPage";
 import VerifyOtpPage from "../pages/VerifyOtpPage";
 import AuthorityLogin from "../pages/AuthorityLogin";
 import AuthorityRegister from "../pages/AuthorityRegister";
+import AdminLogin from "../pages/AdminLogin";
 import ForgotPassword from "../pages/ForgotPassword";
 import NotFoundPage from "../pages/NotFoundPage";
 
@@ -39,6 +40,8 @@ export default function AppRoutes() {
       <Route path="/authority/login" element={<AuthorityLogin />} />
       <Route path="/authority-register" element={<AuthorityRegister />} />
       <Route path="/authority/register" element={<AuthorityRegister />} />
+      <Route path="/admin-login" element={<AdminLogin />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/publictrans" element={<PublicTransparency />} />
       <Route path="/public-dashboard" element={<PublicTransparency />} />
       <Route path="/public" element={<PublicTransparency />} />
@@ -169,11 +172,11 @@ export default function AppRoutes() {
         }
       />
 
-      {/* Protected Institutional Administrator Pages (Redirects unauthorized visitors to /authority/login) */}
+      {/* Protected Institutional Administrator Pages (Redirects unauthorized visitors to /admin/login) */}
       <Route
         path="/admin"
         element={
-          <ProtectedRoute redirectTo="/authority/login" roleRequired="admin">
+          <ProtectedRoute redirectTo="/admin/login" roleRequired="admin">
             <AdminDashboard />
           </ProtectedRoute>
         }
@@ -181,7 +184,7 @@ export default function AppRoutes() {
       <Route
         path="/admin/dashboard"
         element={
-          <ProtectedRoute redirectTo="/authority/login" roleRequired="admin">
+          <ProtectedRoute redirectTo="/admin/login" roleRequired="admin">
             <AdminDashboard />
           </ProtectedRoute>
         }
@@ -189,8 +192,16 @@ export default function AppRoutes() {
       <Route
         path="/admin/authority-requests"
         element={
-          <ProtectedRoute redirectTo="/authority/login" roleRequired="admin">
+          <ProtectedRoute redirectTo="/admin/login" roleRequired="admin">
             <AdminAuthorityRequests />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/notifications"
+        element={
+          <ProtectedRoute redirectTo="/admin/login" roleRequired="admin">
+            <Notifications />
           </ProtectedRoute>
         }
       />

@@ -123,6 +123,14 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    readNotifications: {
+      type: [String],
+      default: [],
+    },
+    allNotificationsReadAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

@@ -43,7 +43,6 @@ const UserDashboard = () => {
               <i className="fa-solid fa-folder-open w-4"></i> My Petitions
             </a>
             <a href="/petition-detail" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-comments w-4"></i> Inquiry Chat
             </a>
             <a href="/notifications" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
               <i className="fa-solid fa-bell w-4"></i> Notifications

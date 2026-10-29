@@ -40,8 +40,15 @@ function Login() {
 
   useEffect(() => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+    const role = localStorage.getItem('nyaya_user_role')
     if (token) {
-      navigate('/dashboard', { replace: true })
+      if (role === 'admin') {
+        navigate('/admin/dashboard', { replace: true })
+      } else if (role === 'officer') {
+        navigate('/officerdash', { replace: true })
+      } else {
+        navigate('/dashboard', { replace: true })
+      }
     }
   }, [navigate])
 
@@ -51,12 +58,19 @@ function Login() {
     setLoading(true)
 
     try {
-      const response = await authApi.login({
+      const response = await authApi.loginUser({
         identifier: identifier.trim(),
         password,
       })
 
       const { token, user } = response.data
+
+      // Strict role check: reject any non-user accounts
+      if (user?.role && user.role !== 'user') {
+        setError('These credentials cannot be used for User Login.')
+        return
+      }
+
       if (token) {
         localStorage.setItem('token', token)
       }
@@ -73,9 +87,7 @@ function Login() {
 
       dispatch(setCredentials({ user, token }))
 
-      const from =
-        location.state?.from?.pathname ||
-        (user?.role === 'officer' || user?.role === 'admin' ? '/officerdash' : '/dashboard')
+      const from = location.state?.from?.pathname || '/dashboard'
       navigate(from, { replace: true })
     } catch (err) {
       const status = err.response?.status
@@ -292,6 +304,13 @@ function Login() {
           Are you an authority?{' '}
           <Link to="/authority-login" className="text-[#7a1620] font-semibold hover:underline">
             Authority Login
+          </Link>
+        </p>
+
+        <p className="mt-2 text-center text-xs text-[#3b2a20]/70">
+          System Administrator?{' '}
+          <Link to="/admin-login" className="text-[#7a1620] font-semibold hover:underline">
+            Admin Login
           </Link>
         </p>
       </div>

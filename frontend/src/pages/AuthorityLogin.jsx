@@ -29,7 +29,7 @@ function AuthorityLogin() {
   const [remember, setRemember] = useState(false)
   const [error, setError] = useState(
     location.state?.roleMismatch
-      ? 'Authority or Administrator credentials are required to access this portal.'
+      ? 'Authority credentials are required to access this portal.'
       : location.state?.notApproved
       ? 'Your authority registration is awaiting administrator verification. Access is restricted until approved.'
       : ''
@@ -45,6 +45,8 @@ function AuthorityLogin() {
         navigate('/admin/dashboard', { replace: true })
       } else if (role === 'officer' && (!status || status === 'approved')) {
         navigate('/officerdash', { replace: true })
+      } else if (role === 'user') {
+        navigate('/dashboard', { replace: true })
       }
     }
   }, [navigate])
@@ -55,21 +57,22 @@ function AuthorityLogin() {
 
     try {
       setLoading(true)
-      const res = await authApi.login({ identifier: identifier.trim(), password })
+      const res = await authApi.loginAuthority({ identifier: identifier.trim(), password })
       const { token, user } = res.data
 
-      // Role check: Only officer or admin accounts allowed
-      if (user?.role && user.role !== 'officer' && user.role !== 'admin') {
-        setError('Access Denied: Your account is registered as a student/standard user. Only authorized Officers and Admins can access the Authority Console.')
+      // Role check: Only approved officer accounts allowed
+      if (user?.role && user.role !== 'officer') {
+        setError('These credentials cannot be used for Authority Login.')
         return
       }
 
-      // Verification check: Only approved officers (or administrators) can proceed
+      // Verification check: Only approved officers can proceed
       if (user?.role === 'officer' && user.verificationStatus !== 'approved') {
         const rejectionMsg = user.rejectionReason
           ? `Your authority registration was rejected by the administrator. Reason: ${user.rejectionReason}`
           : 'Your authority registration was rejected by the administrator.'
-        const pendingMsg = 'Your authority account is awaiting administrator review and approval. Access will be enabled once verified.'
+        const pendingMsg =
+          'Your authority account is awaiting administrator review and approval. Access will be enabled once verified.'
         setError(user.verificationStatus === 'rejected' ? rejectionMsg : pendingMsg)
         return
       }
@@ -90,8 +93,7 @@ function AuthorityLogin() {
 
       dispatch(setCredentials({ user, token }))
 
-      const fallbackRoute = user?.role === 'admin' ? '/admin/dashboard' : '/officerdash'
-      const from = location.state?.from?.pathname || fallbackRoute
+      const from = location.state?.from?.pathname || '/officerdash'
       navigate(from, { replace: true })
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Login failed. Please check your credentials.')

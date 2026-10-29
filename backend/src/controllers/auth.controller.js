@@ -278,6 +278,100 @@ const login = async (req, res) => {
       });
     }
 
+    // Role-based validation
+    const expectedRole = req.expectedRole;
+
+    if (expectedRole === "user") {
+      if (user.role !== "user") {
+        return res.status(403).json({
+          success: false,
+          message: "These credentials cannot be used for User Login.",
+        });
+      }
+      if (!user.isVerified) {
+        return res.status(403).json({
+          success: false,
+          message: "Account not verified. Please verify your email before logging in.",
+        });
+      }
+    } else if (expectedRole === "officer") {
+      if (user.role !== "officer") {
+        return res.status(403).json({
+          success: false,
+          message: "These credentials cannot be used for Authority Login.",
+        });
+      }
+      if (user.verificationStatus === "pending") {
+        return res.status(403).json({
+          success: false,
+          message: "Your authority registration is pending administrator verification. Please wait for approval.",
+        });
+      }
+      if (user.verificationStatus === "rejected") {
+        return res.status(403).json({
+          success: false,
+          message: user.rejectionReason
+            ? `Your authority registration was rejected by the administrator. Reason: ${user.rejectionReason}`
+            : "Your authority registration was rejected by the administrator.",
+        });
+      }
+      if (user.verificationStatus !== "approved") {
+        return res.status(403).json({
+          success: false,
+          message: "Your authority registration is pending administrator verification. Please wait for approval.",
+        });
+      }
+      if (!user.isVerified) {
+        return res.status(403).json({
+          success: false,
+          message: "Account not verified. Please contact administrator.",
+        });
+      }
+    } else if (expectedRole === "admin") {
+      if (user.role !== "admin") {
+        return res.status(403).json({
+          success: false,
+          message: "These credentials cannot be used for Admin Login.",
+        });
+      }
+      if (user.verificationStatus !== "approved" || !user.isVerified) {
+        return res.status(403).json({
+          success: false,
+          message: "Admin account is not active or verified.",
+        });
+      }
+    } else {
+      // General login endpoint without explicit role restriction
+      if (user.role === "officer") {
+        if (user.verificationStatus === "pending") {
+          return res.status(403).json({
+            success: false,
+            message: "Your authority registration is pending administrator verification. Please wait for approval.",
+          });
+        }
+        if (user.verificationStatus === "rejected") {
+          return res.status(403).json({
+            success: false,
+            message: user.rejectionReason
+              ? `Your authority registration was rejected by the administrator. Reason: ${user.rejectionReason}`
+              : "Your authority registration was rejected by the administrator.",
+          });
+        }
+        if (user.verificationStatus !== "approved") {
+          return res.status(403).json({
+            success: false,
+            message: "Your authority registration is pending administrator verification. Please wait for approval.",
+          });
+        }
+      }
+      if (!user.isVerified) {
+        return res.status(403).json({
+          success: false,
+          message: "Account not verified. Please verify your email before logging in.",
+        });
+      }
+    }
+
     // Issue JWT with explicit expiration and algorithm
     const token = jwt.sign(
       { id: user._id, role: user.role, tokenVersion: user.tokenVersion || 0 },

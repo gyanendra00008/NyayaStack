@@ -3,9 +3,11 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
 /**
- * Route protection wrapper.
- * Prevents unauthenticated users from reaching private portal pages (e.g. /dashboard).
- * If the user is unauthenticated, they are redirected to /login with state preserved.
+ * Strict Role-Based ProtectedRoute Wrapper
+ * - Unauthenticated visitors are redirected to the appropriate role login page.
+ * - Authenticated users who lack permission for a dashboard/page are redirected
+ *   to their own role-authorized console.
+ * - Pending or rejected authorities are blocked from the officer console.
  */
 export default function ProtectedRoute({ children, roleRequired = null, redirectTo = '/login' }) {
   const location = useLocation();
@@ -20,38 +22,54 @@ export default function ProtectedRoute({ children, roleRequired = null, redirect
     localStorage.getItem('authorityToken') ||
     sessionStorage.getItem('authorityToken');
 
+  // Determine appropriate login fallback based on roleRequired
+  const effectiveRedirect =
+    redirectTo ||
+    (roleRequired === 'admin'
+      ? '/admin/login'
+      : roleRequired === 'officer'
+      ? '/authority/login'
+      : '/login');
+
   if (!token) {
-    // Unauthenticated user -> redirect to login
-    return <Navigate to={redirectTo} state={{ from: location }} replace />;
+    // Unauthenticated visitor -> redirect to appropriate login portal
+    return <Navigate to={effectiveRedirect} state={{ from: location }} replace />;
   }
 
   const userRole =
     reduxUser?.role ||
     localStorage.getItem('nyaya_user_role') ||
-    (localStorage.getItem('authorityToken') || sessionStorage.getItem('authorityToken') ? 'officer' : 'user');
+    'user';
 
-  // Strict role separation:
-  // If roleRequired is 'user' (student) and current user is officer/admin, redirect to officer dashboard
-  if (roleRequired === 'user' && (userRole === 'officer' || userRole === 'admin')) {
-    return <Navigate to={userRole === 'admin' ? '/admin/dashboard' : '/officerdash'} replace />;
+  // 1. If roleRequired is 'user': ONLY regular users allowed
+  if (roleRequired === 'user') {
+    if (userRole !== 'user') {
+      const authorizedTarget = userRole === 'admin' ? '/admin/dashboard' : '/officerdash';
+      return <Navigate to={authorizedTarget} replace />;
+    }
   }
 
-  // If a role is required (e.g. 'officer' or 'admin')
-  if (roleRequired && roleRequired !== 'user') {
-    // If user lacks the required role and is not an admin
-    if (!userRole || (userRole !== roleRequired && userRole !== 'admin')) {
-      return <Navigate to={redirectTo} state={{ from: location, roleMismatch: true }} replace />;
+  // 2. If roleRequired is 'officer': ONLY approved officers allowed
+  if (roleRequired === 'officer') {
+    if (userRole !== 'officer') {
+      const authorizedTarget = userRole === 'admin' ? '/admin/dashboard' : '/dashboard';
+      return <Navigate to={authorizedTarget} replace />;
     }
 
-    // If role required is officer and user is an officer, verify account approval
-    if (userRole === 'officer') {
-      const verificationStatus =
-        reduxUser?.verificationStatus ||
-        localStorage.getItem('nyaya_verification_status');
+    const verificationStatus =
+      reduxUser?.verificationStatus ||
+      localStorage.getItem('nyaya_verification_status');
 
-      if (verificationStatus && verificationStatus !== 'approved') {
-        return <Navigate to="/authority/login" state={{ from: location, notApproved: true }} replace />;
-      }
+    if (verificationStatus && verificationStatus !== 'approved') {
+      return <Navigate to="/authority/login" state={{ from: location, notApproved: true }} replace />;
+    }
+  }
+
+  // 3. If roleRequired is 'admin': ONLY institutional administrators allowed
+  if (roleRequired === 'admin') {
+    if (userRole !== 'admin') {
+      const authorizedTarget = userRole === 'officer' ? '/officerdash' : '/dashboard';
+      return <Navigate to={authorizedTarget} replace />;
     }
   }
 

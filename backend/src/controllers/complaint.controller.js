@@ -21,7 +21,7 @@ const {
   findLowestRankAuthority,
 } = require("../utils/hierarchy.utils.js");
 const cloudinaryService = require("../services/cloudinary.service.js");
-const mlService = require("../services/ml.service.js");
+const { classifyComplaint } = require("../services/complaintClassifier.service.js");
 
 /**
  * Cross-database safe officer populator.
@@ -162,20 +162,28 @@ async function createComplaint(req, res, next) {
       resolvedParentComplaintId = parentIdTrimmed;
     }
 
-    // Automatically determine category using ML Service if requested or defaulted to 'Auto'
+    // Automatically determine category using AI Classification Service if requested or defaulted to 'Auto'
+    let resolvedDepartment = req.body.department || "";
     let resolvedCategory = category;
     if (autoCategorize || resolvedCategory === "Auto") {
       try {
-        const prediction = await mlService.predictCategory(title, description);
-        if (prediction && prediction.predicted_category) {
-          resolvedCategory = prediction.predicted_category;
+        const classificationResult = await classifyComplaint(title, description);
+        if (classificationResult && classificationResult.category) {
+          resolvedCategory = classificationResult.category;
+          if (!resolvedDepartment && classificationResult.department) {
+            resolvedDepartment = classificationResult.department;
+          }
         } else {
           resolvedCategory = "Other";
         }
-      } catch (mlErr) {
-        console.warn("Auto-categorization fallback to 'Other':", mlErr.message);
+      } catch (classifyErr) {
+        console.warn("Auto-categorization fallback to 'Other':", classifyErr.message);
         resolvedCategory = "Other";
       }
+    }
+
+    if (!resolvedDepartment) {
+      resolvedDepartment = CATEGORY_TO_DEPARTMENT[resolvedCategory] || "Administration";
     }
 
     // 1. Upload attachments to Cloudinary if files are present
@@ -191,7 +199,7 @@ async function createComplaint(req, res, next) {
     }
 
     // Determine target department and route to the lowest rank authority of that category
-    const department = req.body.department || CATEGORY_TO_DEPARTMENT[resolvedCategory] || "Administration";
+    const department = resolvedDepartment;
     const routing = await findLowestRankAuthority({
       department,
       category: resolvedCategory,
@@ -264,6 +272,10 @@ async function createComplaint(req, res, next) {
         isAnonymous: savedComplaint.isAnonymous,
         attachments: savedComplaint.attachments,
         slaDueAt: savedComplaint.slaDueAt,
+        currentEscalationLevel: savedComplaint.currentEscalationLevel || 1,
+        assignedAt: savedComplaint.assignedAt || savedComplaint.createdAt,
+        resolutionDeadline: savedComplaint.resolutionDeadline,
+        escalationStatus: savedComplaint.escalationStatus || "normal",
         parentComplaintId: savedComplaint.parentComplaintId || null,
         chainId: savedComplaint.chainId || null,
         chainRoot: savedComplaint.chainRoot || null,
@@ -299,27 +311,73 @@ async function getMyComplaints(req, res, next) {
 
     const query = { userId };
 
-    const [total, rawComplaints] = await Promise.all([
+    const { status, category, search, sort } = req.query || {};
+
+    if (status && status !== "All") {
+      if (status === "Pending") {
+        query.status = { $in: ["Filed", "Assigned", "In Review"] };
+      } else {
+        query.status = status;
+      }
+    }
+
+    if (category && category !== "All") {
+      query.category = category;
+    }
+
+    if (search && typeof search === "string" && search.trim()) {
+      const cleanSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.$or = [
+        { title: { $regex: cleanSearch, $options: "i" } },
+        { complaintId: { $regex: cleanSearch, $options: "i" } },
+        { description: { $regex: cleanSearch, $options: "i" } },
+      ];
+    }
+
+    const sortOrder = sort === "oldest" ? 1 : -1;
+
+    const [
+      totalUserComplaints,
+      pendingCount,
+      inProgressCount,
+      resolvedCount,
+      totalFiltered,
+      rawComplaints,
+    ] = await Promise.all([
+      Complaint.countDocuments({ userId }),
+      Complaint.countDocuments({
+        userId,
+        status: { $in: ["Filed", "Assigned", "In Review"] },
+      }),
+      Complaint.countDocuments({ userId, status: "In Progress" }),
+      Complaint.countDocuments({ userId, status: "Resolved" }),
       Complaint.countDocuments(query),
       Complaint.find(query)
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: sortOrder })
         .skip(skip)
         .limit(limit)
-        .select("complaintId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank parentComplaintId chainId chainRoot createdAt updatedAt -_id")
+        .select(
+          "complaintId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank parentComplaintId chainId chainRoot currentEscalationLevel assignedAt resolutionDeadline escalationStatus escalationHistory createdAt updatedAt -_id"
+        )
         .lean(),
     ]);
 
     const complaints = await populateOfficers(rawComplaints);
-
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = Math.ceil(totalFiltered / limit);
 
     return res.status(200).json({
       success: true,
       data: complaints,
+      summary: {
+        total: totalUserComplaints,
+        pending: pendingCount,
+        inProgress: inProgressCount,
+        resolved: resolvedCount,
+      },
       pagination: {
         page,
         limit,
-        total,
+        total: totalFiltered,
         totalPages,
       },
     });
@@ -386,60 +444,6 @@ async function getMySlaSummary(req, res, next) {
 }
 
 /**
- * Controller: POST /api/complaints/predict-category
- * Obtains predicted problem category from the FastAPI ML service.
- */
-async function predictComplaintCategory(req, res, next) {
-  try {
-    const { title, description } = req.body || {};
-
-    if (!title || typeof title !== "string" || !title.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Title is required for category prediction",
-      });
-    }
-
-    const trimmedTitle = title.trim();
-    if (trimmedTitle.length < 3 || trimmedTitle.length > 200) {
-      return res.status(400).json({
-        success: false,
-        message: "Title must be between 3 and 200 characters long",
-      });
-    }
-
-    if (
-      description !== undefined &&
-      description !== null &&
-      typeof description === "string" &&
-      description.trim().length > 0 &&
-      description.trim().length < 10
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Description must be between 10 and 5000 characters long",
-      });
-    }
-
-    const prediction = await mlService.predictCategory(trimmedTitle, description);
-
-    return res.status(200).json({
-      success: true,
-      data: prediction,
-    });
-  } catch (error) {
-    if (error.statusCode) {
-      return res.status(error.statusCode).json({
-        success: false,
-        message: error.message,
-        details: error.details,
-      });
-    }
-    next(error);
-  }
-}
-
-/**
  * Controller: GET /api/complaints/categories
  * Returns the authoritative list of supported grievance categories.
  */
@@ -447,6 +451,7 @@ async function getCategories(req, res) {
   return res.status(200).json({
     success: true,
     data: COMPLAINT_CATEGORIES,
+    categories: COMPLAINT_CATEGORIES,
   });
 }
 
@@ -468,7 +473,7 @@ async function getComplaintById(req, res, next) {
     }
 
     const complaint = await Complaint.findOne({ complaintId })
-      .select("complaintId userId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank slaDueAt resolvedAt createdAt updatedAt -_id")
+      .select("complaintId userId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank slaDueAt resolvedAt currentEscalationLevel assignedAt resolutionDeadline escalationStatus escalationHistory createdAt updatedAt -_id")
       .lean();
 
     if (!complaint) {
@@ -542,7 +547,11 @@ async function getPublicComplaints(req, res, next) {
       query.category = category;
     }
     if (status && status !== "All") {
-      query.status = status;
+      if (status === "Pending") {
+        query.status = { $in: ["Filed", "Assigned", "In Review"] };
+      } else {
+        query.status = status;
+      }
     }
     if (search && typeof search === "string" && search.trim()) {
       const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -773,7 +782,7 @@ async function getAssignedComplaints(req, res, next) {
         .skip(skip)
         .limit(limitNum)
         .select(
-          "complaintId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank slaDueAt resolvedAt createdAt updatedAt -_id"
+          "complaintId category department priority title description status isAnonymous attachments assignedTo assignedDesignation assignedRank currentEscalationLevel assignedAt resolutionDeadline escalationStatus escalationHistory slaDueAt resolvedAt createdAt updatedAt -_id"
         )
         .lean(),
       Complaint.countDocuments({
@@ -1024,7 +1033,6 @@ module.exports = {
   updateComplaintStatus,
   getComplaintChain,
   resolveComplaintChain,
-  predictComplaintCategory,
   getCategories,
   getComplaintById,
   getPublicComplaints,

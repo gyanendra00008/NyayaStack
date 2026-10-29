@@ -1,12 +1,13 @@
 import axios from 'axios';
 
-// Resolve API base URL strictly from environment variables
+// Resolve API base URL strictly from environment variables, defaulting to local backend in development and Render in production
 const resolveBaseUrl = () => {
   const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '';
   const cleanUrl = envUrl.trim().replace(/\/+$/, '');
   if (!cleanUrl) {
-    console.warn('VITE_API_URL or VITE_API_BASE_URL is not defined in environment variables.');
-    return '';
+    return import.meta.env.PROD
+      ? 'https://nyayastack-backend.onrender.com/api'
+      : 'http://localhost:3000/api';
   }
   return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
 };
@@ -45,7 +46,7 @@ api.interceptors.response.use(
   }
 );
 
-// Standard grievance categories matching backend schema & ML model
+// Standard grievance categories matching backend schema
 export const DEFAULT_CATEGORIES = [
   'Hostel',
   'Academic',
@@ -68,12 +69,49 @@ export const authApi = {
   verifyOtp: (payload) => api.post('/auth/verify-otp', payload),
   resendOtp: (payload) => api.post('/auth/resend-otp', payload),
   login: (payload) => api.post('/auth/login', payload),
+  loginUser: async (payload) => {
+    try {
+      return await api.post('/auth/user/login', { ...payload, role: 'user', loginType: 'user' });
+    } catch (err) {
+      if (err.response?.status === 404) {
+        return await api.post('/auth/login', { ...payload, role: 'user', loginType: 'user' });
+      }
+      throw err;
+    }
+  },
+  loginAuthority: async (payload) => {
+    try {
+      return await api.post('/auth/authority/login', { ...payload, role: 'officer', loginType: 'authority' });
+    } catch (err) {
+      if (err.response?.status === 404) {
+        return await api.post('/auth/login', { ...payload, role: 'officer', loginType: 'authority' });
+      }
+      throw err;
+    }
+  },
+  loginAdmin: async (payload) => {
+    try {
+      return await api.post('/auth/admin/login', { ...payload, role: 'admin', loginType: 'admin' });
+    } catch (err) {
+      if (err.response?.status === 404) {
+        return await api.post('/auth/login', { ...payload, role: 'admin', loginType: 'admin' });
+      }
+      throw err;
+    }
+  },
   forgotPassword: (payload) => api.post('/auth/forgot-password', payload),
   verifyResetOtp: (payload) => api.post('/auth/verify-reset-otp', payload),
   resetPassword: (payload) => api.post('/auth/reset-password', payload),
   changePassword: (payload) => api.post('/auth/change-password', payload),
   getMe: () => api.get('/auth/me'),
   getAdminDashboard: () => api.get('/auth/admin/dashboard'),
+};
+
+// Notification API methods
+export const notificationApi = {
+  getNotifications: () => api.get('/notifications'),
+  markAsRead: (id) => api.patch(`/notifications/${id}/read`),
+  markAllAsRead: () => api.patch('/notifications/read-all'),
 };
 
 // Administrator API methods
@@ -95,37 +133,9 @@ export const healthApi = {
 // Complaint & Petition API methods
 export const complaintApi = {
   getCategories: () => api.get('/complaints/categories'),
-  predictCategory: (payload) => api.post('/complaints/predict-category', payload),
-  getPublicStats: async () => {
-    try {
-      const res = await api.get('/complaints/public/stats');
-      return res;
-    } catch (err) {
-      if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-        try {
-          return await axios.get('http://localhost:3000/api/complaints/public/stats', { timeout: 3000 });
-        } catch {
-          // fallback
-        }
-      }
-      throw err;
-    }
-  },
-  getPublicComplaints: async (params = {}) => {
-    try {
-      const res = await api.get('/complaints/public', { params });
-      return res;
-    } catch (err) {
-      if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-        try {
-          return await axios.get('http://localhost:3000/api/complaints/public', { params, timeout: 3000 });
-        } catch {
-          // fallback
-        }
-      }
-      throw err;
-    }
-  },
+  classifyComplaint: (payload, config = {}) => api.post('/classify-complaint', payload, config),
+  getPublicStats: () => api.get('/complaints/public/stats'),
+  getPublicComplaints: (params = {}) => api.get('/complaints/public', { params }),
   createComplaint: (formData) =>
     api.post('/complaints', formData, {
       headers: {

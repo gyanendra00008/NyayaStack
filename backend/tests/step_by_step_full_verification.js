@@ -6,18 +6,14 @@ const fs = require("node:fs");
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 
-const ML_PORT = 8001;
 const BACKEND_PORT = 3000;
 const FRONTEND_PORT = 5173;
 
-const ML_URL = `http://127.0.0.1:${ML_PORT}`;
 const BACKEND_URL = `http://127.0.0.1:${BACKEND_PORT}`;
 const FRONTEND_URL = `http://127.0.0.1:${FRONTEND_PORT}`;
 
 process.env.PORT = String(BACKEND_PORT);
-process.env.ML_SERVICE_URL = ML_URL;
 
-let mlProcess = null;
 let backendProcess = null;
 let frontendProcess = null;
 
@@ -65,85 +61,14 @@ async function runStepByStepVerification() {
     getStorageConnection();
 
     // ---------------------------------------------------------
-    // STEP 1: Launch & Verify Python FastAPI ML Microservice
+    // STEP 1: Launch & Verify Express Backend
     // ---------------------------------------------------------
-    console.log("\n--- STEP 1: Verifying Python FastAPI ML Microservice ---");
-
-    const mlDir = path.resolve(__dirname, "../ML_service");
-    mlProcess = spawn(
-      "python3",
-      ["-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", String(ML_PORT)],
-      { cwd: mlDir, stdio: "pipe" }
-    );
-
-    mlProcess.stderr.on("data", (data) => {
-      const msg = data.toString();
-      if (msg.includes("ERROR")) console.error("ML stderr:", msg.trim());
-    });
-
-    await waitForServer(`${ML_URL}/health`, 15000, "FastAPI ML Service");
-
-    // 1.1 Test Health Endpoint
-    const mlHealthRes = await fetch(`${ML_URL}/health`);
-    assert.strictEqual(mlHealthRes.status, 200);
-    const mlHealth = await mlHealthRes.json();
-    assert.strictEqual(mlHealth.status, "healthy");
-    assert.strictEqual(mlHealth.model_loaded, true);
-    recordSuccess(
-      "1.1",
-      "FastAPI ML Service health check",
-      `Status: ${mlHealth.status}, Model Loaded: ${mlHealth.model_loaded}, Version: ${mlHealth.model_version}`
-    );
-
-    // 1.2 Test Supported Categories Endpoint
-    const mlCatRes = await fetch(`${ML_URL}/categories`);
-    assert.strictEqual(mlCatRes.status, 200);
-    const mlCats = await mlCatRes.json();
-    assert.ok(Array.isArray(mlCats.categories));
-    assert.strictEqual(mlCats.categories.length, 12);
-    recordSuccess(
-      "1.2",
-      "FastAPI ML Service categories endpoint",
-      `Supported categories (${mlCats.categories.length}): ${mlCats.categories.join(", ")}`
-    );
-
-    // 1.3 Test Direct ML Prediction
-    const mlDirectRes = await fetch(`${ML_URL}/predict`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: "Cold water in hostel geyser",
-        description: "Geyser in hostel bathroom Block C is not working for the last three days.",
-      }),
-    });
-    assert.strictEqual(mlDirectRes.status, 200);
-    const mlDirect = await mlDirectRes.json();
-    assert.strictEqual(mlDirect.predicted_category, "Hostel");
-    assert.ok(mlDirect.confidence > 0);
-    recordSuccess(
-      "1.3",
-      "Direct FastAPI prediction",
-      `Predicted: '${mlDirect.predicted_category}' with confidence ${(mlDirect.confidence * 100).toFixed(1)}%`
-    );
-
-    // 1.4 Test ML Input Validation (empty description -> 422)
-    const mlInvalidRes = await fetch(`${ML_URL}/predict`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: "Short", description: "too short" }),
-    });
-    assert.strictEqual(mlInvalidRes.status, 422);
-    recordSuccess("1.4", "FastAPI input validation enforces minimum description length (HTTP 422)");
-
-    // ---------------------------------------------------------
-    // STEP 2: Launch & Verify Express Backend
-    // ---------------------------------------------------------
-    console.log("\n--- STEP 2: Verifying Express Backend ---");
+    console.log("\n--- STEP 1: Verifying Express Backend ---");
 
     const backendDir = path.resolve(__dirname, "..");
     backendProcess = spawn("node", ["server.js"], {
       cwd: backendDir,
-      env: { ...process.env, PORT: String(BACKEND_PORT), ML_SERVICE_URL: ML_URL },
+      env: { ...process.env, PORT: String(BACKEND_PORT) },
       stdio: "pipe",
     });
 
@@ -151,6 +76,9 @@ async function runStepByStepVerification() {
       const msg = d.toString();
       if (!msg.includes("DeprecationWarning")) console.error("Backend stderr:", msg.trim());
     });
+
+    await waitForServer(`${BACKEND_URL}/health`, 15000, "Express Backend");
+    recordSuccess("1.1", "Express backend booted and healthy on port " + BACKEND_PORT);
 
     await waitForServer(`${BACKEND_URL}/api/health`, 15000, "Express Backend");
 
@@ -309,9 +237,9 @@ async function runStepByStepVerification() {
       `Returned ${catData.data.length} authoritative grievance categories`
     );
 
-    // 4.6 LIVE ML Category Prediction (React Frontend -> Express -> FastAPI)
-    console.log("   Testing Backend -> ML Service forward prediction...");
-    const predictRes1 = await fetch(`${BACKEND_URL}/api/complaints/predict-category`, {
+    // 4.6 LIVE AI Category Classification (React Frontend -> Express -> Gemini)
+    console.log("   Testing Backend Gemini AI complaint classification...");
+    const predictRes1 = await fetch(`${BACKEND_URL}/api/classify-complaint`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -322,16 +250,16 @@ async function runStepByStepVerification() {
     assert.strictEqual(predictRes1.status, 200);
     const pred1 = await predictRes1.json();
     assert.strictEqual(pred1.success, true);
-    assert.strictEqual(pred1.data.predicted_category, "Hostel");
-    assert.ok(pred1.data.confidence > 0);
+    assert.strictEqual(pred1.classification.category, "Hostel");
+    assert.strictEqual(pred1.classification.department, "Hostel & Mess");
     recordSuccess(
       "4.6a",
-      "ML Category Suggestion (Hostel problem)",
-      `Predicted Category: '${pred1.data.predicted_category}', Confidence: ${(pred1.data.confidence * 100).toFixed(1)}%`
+      "AI Classification (Hostel problem)",
+      `Predicted Category: '${pred1.classification.category}', Department: '${pred1.classification.department}'`
     );
 
-    // Test a second domain (Academic) through alias /api/petitions/predict-category
-    const predictRes2 = await fetch(`${BACKEND_URL}/api/petitions/predict-category`, {
+    // Test a second domain (Academic) through /api/classify-complaint
+    const predictRes2 = await fetch(`${BACKEND_URL}/api/classify-complaint`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -341,11 +269,12 @@ async function runStepByStepVerification() {
     });
     assert.strictEqual(predictRes2.status, 200);
     const pred2 = await predictRes2.json();
-    assert.strictEqual(pred2.data.predicted_category, "Academic");
+    assert.strictEqual(pred2.success, true);
+    assert.strictEqual(pred2.classification.category, "Academic");
     recordSuccess(
       "4.6b",
-      "ML Category Suggestion via alias /api/petitions/predict-category (Academic problem)",
-      `Predicted Category: '${pred2.data.predicted_category}', Confidence: ${(pred2.data.confidence * 100).toFixed(1)}%`
+      "AI Classification (Academic problem)",
+      `Predicted Category: '${pred2.classification.category}', Department: '${pred2.classification.department}'`
     );
 
     // 4.7a Petition Submission (POST /api/complaints)
@@ -516,9 +445,6 @@ async function runStepByStepVerification() {
     }
     if (backendProcess) {
       backendProcess.kill("SIGTERM");
-    }
-    if (mlProcess) {
-      mlProcess.kill("SIGTERM");
     }
 
     const { closeConnections } = require("../src/config/db.js");

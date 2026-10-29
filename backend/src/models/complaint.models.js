@@ -78,6 +78,57 @@ const attachmentSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const escalationHistorySchema = new mongoose.Schema(
+  {
+    previousAssignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    previousAssignedDesignation: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    newAssignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    newAssignedDesignation: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    previousLevel: {
+      type: Number,
+      required: true,
+    },
+    newLevel: {
+      type: Number,
+      required: true,
+    },
+    escalatedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    reason: {
+      type: String,
+      trim: true,
+      default: "SLA resolution window expired (48h elapsed without resolution)",
+    },
+    previousDeadline: {
+      type: Date,
+      default: null,
+    },
+    newDeadline: {
+      type: Date,
+      default: null,
+    },
+  },
+  { _id: false }
+);
+
 const complaintSchema = new mongoose.Schema(
   {
     complaintId: {
@@ -163,6 +214,32 @@ const complaintSchema = new mongoose.Schema(
       index: true,
     },
 
+    // ── Time-based Hierarchical Escalation Fields ──────────────────────────────
+    currentEscalationLevel: {
+      type: Number,
+      default: 1,
+      min: 1,
+      index: true,
+    },
+    assignedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    resolutionDeadline: {
+      type: Date,
+      index: true,
+    },
+    escalationStatus: {
+      type: String,
+      enum: ["normal", "escalated", "admin_attention"],
+      default: "normal",
+      index: true,
+    },
+    escalationHistory: {
+      type: [escalationHistorySchema],
+      default: [],
+    },
+
     // ── Hash-Chain Fields ──────────────────────────────────────────────────────
     // parentComplaintId: the complaintId of the directly preceding complaint in the chain.
     // null means this is the root / standalone complaint.
@@ -207,11 +284,21 @@ const complaintSchema = new mongoose.Schema(
   }
 );
 
-// New complaint: set slaDueAt based on category
+// New complaint: set slaDueAt and time-based escalation resolutionDeadline
 complaintSchema.pre("validate", function () {
   if (this.isNew && !this.slaDueAt) {
     const days = SLA_DAYS[this.category] ?? 7;
     this.slaDueAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  }
+  if (this.isNew) {
+    if (!this.assignedAt) {
+      this.assignedAt = new Date();
+    }
+    if (!this.resolutionDeadline) {
+      const parsedHours = parseInt(process.env.ESCALATION_WINDOW_HOURS, 10);
+      const hours = !isNaN(parsedHours) && parsedHours > 0 ? parsedHours : 48;
+      this.resolutionDeadline = new Date(this.assignedAt.getTime() + hours * 60 * 60 * 1000);
+    }
   }
 });
 

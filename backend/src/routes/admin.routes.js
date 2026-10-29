@@ -6,6 +6,7 @@ const {
   approveAuthorityRequest,
   rejectAuthorityRequest,
   getAdminStats,
+  triggerEscalationProcess,
 } = require("../controllers/admin.controller.js");
 const { resolveComplaintChain } = require("../controllers/complaint.controller.js");
 
@@ -26,5 +27,8 @@ router.patch("/authority-requests/:id/reject", rejectAuthorityRequest);
 
 // Hash-chain management: Admin can resolve an entire chain by any complaint ID in the chain
 router.patch("/complaints/:complaintId/resolve-chain", resolveComplaintChain);
+
+// Time-based Hierarchical Escalation: Admin on-demand trigger
+router.post("/escalate-now", triggerEscalationProcess);
 
 module.exports = router;

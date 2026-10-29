@@ -7,6 +7,7 @@ import anonymousAvatar from '../assets/anonymous-avatar.svg';
 import { complaintApi, authApi } from '../services/api';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import MobileNavToggle from '../components/MobileNavToggle';
+import UserSidebar from '../components/UserSidebar';
 
 const UserDashboard = () => {
   const navigate = useNavigate();
@@ -118,63 +119,8 @@ const UserDashboard = () => {
       {/* Mobile backdrop */}
       {navOpen && <div className="fixed inset-0 bg-black/40 z-20 md:hidden" onClick={() => setNavOpen(false)} />}
 
-      {/* LEFT SIDEBAR */}
-      <aside className={`fixed md:static inset-y-0 left-0 z-30 w-64 bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 select-none transform transition-transform duration-200 ${navOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
-        <div className="overflow-y-auto">
-          <Link to="/" className="h-16 flex items-center gap-2.5 px-6 border-b border-stone-200/80 hover:bg-stone-100/50 transition">
-            <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
-              <img src={logo} alt="NyayaStack" className="h-full w-full object-cover scale-[1.3]" />
-            </div>
-            <span className="font-bold text-lg text-[#6B1724]" style={{ fontFamily: "'Cinzel', serif" }}>NyayaStack</span>
-          </Link>
-
-          <nav className="p-4 space-y-1 text-xs font-semibold">
-            <Link to="/dashboard" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#6B1724] text-white shadow-sm">
-              <i className="fa-solid fa-house w-4"></i> Dashboard
-            </Link>
-            <Link to="/file-complaint" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-file-circle-plus w-4 text-[#6B1724]"></i> File a Complaint
-            </Link>
-            <Link to="/my-petitions" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-folder-open w-4"></i> My Petitions
-            </Link>
-            <Link to="/petition-detail" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-comments w-4"></i> Inquiry Chat
-            </Link>
-            <Link to="/notifications" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-bell w-4"></i> Notifications
-              {stats.inReview > 0 && (
-                <span className="ml-auto bg-rose-100 text-[#6B1724] px-1.5 py-0.5 rounded-full text-[10px] font-bold">
-                  {stats.inReview}
-                </span>
-              )}
-            </Link>
-            <Link to="/ledger" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-fingerprint w-4"></i> Audit Ledger
-            </Link>
-            <Link to="/publictrans" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-chart-pie w-4"></i> Public Transparency
-            </Link>
-          </nav>
-        </div>
-
-        <div className="p-4 border-t border-stone-200/80 flex items-center justify-between bg-[#F0E8DC]">
-          <div className="flex items-center gap-2.5">
-            <img src={anonymousAvatar} alt="Unknown Identity" className="w-8 h-8 rounded-full object-cover border border-[#6B1724]" />
-            <div>
-              <p className="text-xs font-bold text-stone-800">{userName}</p>
-              <p className="text-[10px] text-stone-500 font-mono">{userId}</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            title="Logout"
-            className="text-stone-400 hover:text-[#6B1724] p-1.5 transition"
-          >
-            <i className="fa-solid fa-arrow-right-from-bracket text-xs"></i>
-          </button>
-        </div>
-      </aside>
+      {/* USER SIDEBAR (Strictly 4 items: Dashboard, File Complaint, My Petitions, Notifications) */}
+      <UserSidebar navOpen={navOpen} setNavOpen={setNavOpen} unreadCount={stats.inReview} />
 
       {/* RIGHT CONTENT */}
       <main className="flex-1 min-w-0 h-full flex flex-col overflow-hidden bg-[#FAF7F2]">

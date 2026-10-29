@@ -1,74 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import logo from '../assets/logo.png';
-import anonymousAvatar from '../assets/anonymous-avatar.svg';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { complaintApi, DEFAULT_CATEGORIES } from '../services/api';
-
-/**
- * Client-side smart keyword matcher fallback.
- * Automatically predicts the grievance category when typing or if backend ML is warming up.
- */
-const guessCategoryFromText = (text) => {
-  if (!text || typeof text !== 'string') return null;
-  const normalized = text.toLowerCase();
-
-  // 1. Ragging (highest urgency, checked first)
-  if (/\b(ragging|ragged|hazing|forced by senior|seniors harassing|senior torture|seniors ragging)\b/i.test(normalized)) {
-    return 'Ragging';
-  }
-
-  // 2. Harassment & Safety
-  if (/\b(harass|harassment|stalking|stalk|indecent|molest|molestation|verbal abuse|threat|blackmail|misbehavior|discrimination|casteism|safety)\b/i.test(normalized)) {
-    return 'Harassment';
-  }
-
-  // 3. Mess & Canteen
-  if (/\b(mess|food|canteen|breakfast|lunch|dinner|meal|roti|sabzi|daal|rice|caterer|tasteless|hygiene in food|uncooked|diet|dining hall|insect in food|caterpillar)\b/i.test(normalized)) {
-    return 'Mess';
-  }
-
-  // 4. Hostel living conditions
-  if (/\b(hostel|room|geyser|bathroom|washroom|toilet|bed|mattress|bedbug|bedbugs|almirah|warden|curfew|block [a-z0-9]|wing [a-z0-9]|tap|flush|shower|corridor|water cooler)\b/i.test(normalized)) {
-    return 'Hostel';
-  }
-
-  // 5. Academic & Examinations
-  if (/\b(academic|exam|exams|grade|marks|professor|syllabus|teacher|faculty|attendance|lecture|assignment|lab|timetable|credits|results|course|registration|midsem|endsem|backlog|revaluation|practical)\b/i.test(normalized)) {
-    return 'Academic';
-  }
-
-  // 6. Finance & Accounts
-  if (/\b(fee|fees|fine|challan|refund|scholarship|receipt|payment|deposit|bank|stipend|accounts|account|overcharge|transaction)\b/i.test(normalized)) {
-    return 'Finance';
-  }
-
-  // 7. Transport & Commute
-  if (/\b(bus|shuttle|transport|vehicle|auto|driver|parking|e-rickshaw|route|cab)\b/i.test(normalized)) {
-    return 'Transport';
-  }
-
-  // 8. Medical & Health
-  if (/\b(doctor|hospital|dispensary|medicine|ambulance|nurse|clinic|first aid|sick|illness|fever|health|medical)\b/i.test(normalized)) {
-    return 'Medical';
-  }
-
-  // 9. Administration & Office Services
-  if (/\b(admin|administration|registrar|office|staff|id card|bonafide|certificate|documents|clearance|gate pass|security guard|authority)\b/i.test(normalized)) {
-    return 'Administration';
-  }
-
-  // 10. Infrastructure & Campus Maintenance
-  if (/\b(wifi|wi-fi|internet|network|road|lift|elevator|building|leakage|classroom|bench|projector|air conditioner|ac|streetlight|auditorium|electricity|power cut|water supply|pipe|light|fan|tubelight)\b/i.test(normalized)) {
-    return 'Infrastructure';
-  }
-
-  // 11. Discipline & Campus Order
-  if (/\b(discipline|fight|dispute|violence|alcohol|smoking|drugs|brawl|disturbance|misconduct)\b/i.test(normalized)) {
-    return 'Discipline';
-  }
-
-  return null;
-};
+import UserSidebar from '../components/UserSidebar';
 
 const FileComplaint = () => {
   const navigate = useNavigate();
@@ -78,6 +11,7 @@ const FileComplaint = () => {
 
   const [formData, setFormData] = useState({
     category: 'Hostel',
+    department: 'Hostel & Mess',
     priority: 'Medium (Standard SLA 48h)',
     isAnon: false,
     isEmergency: false,
@@ -89,10 +23,16 @@ const FileComplaint = () => {
   const [files, setFiles] = useState([]);
   const fileInputRef = useRef(null);
 
+  // Stale request, duplicate prevention, and cancellation refs for Gemini API calls
+  const latestRequestIdRef = useRef(0);
+  const activeAbortControllerRef = useRef(null);
+  const lastClassifiedInputRef = useRef({ title: '', description: '' });
+  const quotaExhaustedRef = useRef(false);
+
   // Manual vs Auto ML category state
   const [isManualCategory, setIsManualCategory] = useState(false);
 
-  // ML Category suggestion state
+  // AI Category suggestion state
   const [mlLoading, setMlLoading] = useState(false);
   const [mlSuggestion, setMlSuggestion] = useState(null);
   const [mlStale, setMlStale] = useState(false);
@@ -209,104 +149,148 @@ const FileComplaint = () => {
     setFormData(prev => ({ ...prev, category: val }));
   };
 
-  // Automatic category classification via ML service as user types problem title/description
+  // Cleanup pending requests on unmount
+  useEffect(() => {
+    return () => {
+      if (activeAbortControllerRef.current) {
+        activeAbortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Shared complaint classification helper invoking the Node.js Gemini endpoint
+  const performClassification = useCallback(async (title, description, isManualTrigger = false) => {
+    const trimmedTitle = (title || '').trim();
+    const trimmedDesc = (description || '').trim();
+
+    // Do not trigger for empty or whitespace-only inputs
+    if (!trimmedTitle || !trimmedDesc) {
+      if (isManualTrigger) {
+        setMlError('Please enter both a title and description before requesting AI classification.');
+      }
+      return;
+    }
+
+    if (trimmedTitle.length < 3) {
+      if (isManualTrigger) {
+        setMlError('Title must be at least 3 characters long for AI classification.');
+      }
+      return;
+    }
+
+    if (trimmedDesc.length < 5) {
+      if (isManualTrigger) {
+        setMlError('Description must be at least 5 characters long for AI classification.');
+      }
+      return;
+    }
+
+    // Avoid duplicate requests when title and description have not meaningfully changed
+    if (!isManualTrigger) {
+      if (
+        lastClassifiedInputRef.current.title === trimmedTitle &&
+        lastClassifiedInputRef.current.description === trimmedDesc
+      ) {
+        return;
+      }
+      // Do not automatically fire requests if quota is exhausted
+      if (quotaExhaustedRef.current) {
+        return;
+      }
+    } else {
+      // Manual trigger explicitly resets the quota exhausted state
+      quotaExhaustedRef.current = false;
+    }
+
+    // Cancel any previous in-flight request to ensure newer input cannot be overwritten
+    if (activeAbortControllerRef.current) {
+      activeAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    activeAbortControllerRef.current = controller;
+    const currentRequestId = ++latestRequestIdRef.current;
+
+    setMlLoading(true);
+    setMlError('');
+
+    try {
+      const res = await complaintApi.classifyComplaint(
+        {
+          title: trimmedTitle,
+          description: trimmedDesc,
+        },
+        { signal: controller.signal }
+      );
+
+      // Guard against out-of-order / stale responses
+      if (currentRequestId !== latestRequestIdRef.current) return;
+
+      lastClassifiedInputRef.current = { title: trimmedTitle, description: trimmedDesc };
+      quotaExhaustedRef.current = false;
+      setMlError('');
+
+      const classification = res.data?.classification;
+      if (classification && classification.category) {
+        if (!isManualCategory) {
+          setFormData((prev) => ({
+            ...prev,
+            category: classification.category,
+            department: classification.department || prev.department,
+          }));
+        }
+
+        setMlSuggestion({
+          department: classification.department,
+          category: classification.category,
+          explanation: classification.explanation,
+          needsHumanReview: Boolean(classification.needsHumanReview),
+          // Backwards-compatible aliases
+          predicted_category: classification.category,
+          needs_review: Boolean(classification.needsHumanReview),
+        });
+        setMlStale(false);
+      }
+    } catch (err) {
+      // Ignore canceled errors caused by subsequent keystrokes
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+        return;
+      }
+      if (currentRequestId !== latestRequestIdRef.current) return;
+
+      if (err.response?.status === 429 || err.response?.data?.code === 'AI_QUOTA_EXHAUSTED') {
+        quotaExhaustedRef.current = true;
+      }
+
+      const msg =
+        err.response?.data?.message ||
+        err.message ||
+        'AI classification service is temporarily unavailable. Please select a category manually.';
+      setMlError(msg);
+    } finally {
+      if (currentRequestId === latestRequestIdRef.current) {
+        setMlLoading(false);
+      }
+    }
+  }, [isManualCategory]);
+
+  // Debounced automatic classification via Gemini API as user enters title & description
   useEffect(() => {
     const trimmedTitle = formData.subject.trim();
     const trimmedDesc = formData.desc.trim();
 
     if (isManualCategory) return;
-    // Trigger auto-fetch as soon as user types problem title (subject >= 3 chars)
-    if (trimmedTitle.length < 3) return;
+    // Only auto-trigger when both title and description have meaningful input
+    if (trimmedTitle.length < 3 || trimmedDesc.length < 5) return;
 
-    const timer = setTimeout(async () => {
-      setMlLoading(true);
-      setMlError('');
-
-      const effectiveDesc =
-        trimmedDesc.length >= 10
-          ? trimmedDesc
-          : (trimmedTitle.length >= 10 ? trimmedTitle : `${trimmedTitle} grievance reported`);
-
-      try {
-        const res = await complaintApi.predictCategory({
-          title: trimmedTitle,
-          description: effectiveDesc,
-        });
-        const data = res.data?.data;
-        if (data && data.predicted_category) {
-          setFormData((prev) => ({ ...prev, category: data.predicted_category }));
-          setMlSuggestion(data);
-          setMlStale(false);
-        }
-      } catch (err) {
-        // Fallback to client-side smart matching if server returns error or ML is warming up
-        const fallbackCat = guessCategoryFromText(trimmedTitle + ' ' + trimmedDesc);
-        if (fallbackCat) {
-          setFormData((prev) => ({ ...prev, category: fallbackCat }));
-          setMlSuggestion({
-            predicted_category: fallbackCat,
-            confidence: 0.7,
-            needs_review: true,
-            is_fallback: true,
-            message: 'Auto-detected via smart matching',
-          });
-          setMlStale(false);
-        }
-      } finally {
-        setMlLoading(false);
-      }
-    }, 600);
+    const timer = setTimeout(() => {
+      performClassification(trimmedTitle, trimmedDesc, false);
+    }, 700);
 
     return () => clearTimeout(timer);
-  }, [formData.subject, formData.desc, isManualCategory]);
+  }, [formData.subject, formData.desc, isManualCategory, performClassification]);
 
-  const handleSuggestCategory = async () => {
-    setMlError('');
-    const trimmedTitle = formData.subject.trim();
-    const trimmedDesc = formData.desc.trim();
-
-    if (!trimmedTitle || trimmedTitle.length < 3) {
-      setMlError('Please enter a subject / problem title (at least 3 characters) before requesting AI categorization.');
-      return;
-    }
-
-    const effectiveDesc =
-      trimmedDesc.length >= 10
-        ? trimmedDesc
-        : (trimmedTitle.length >= 10 ? trimmedTitle : `${trimmedTitle} grievance reported`);
-
-    setMlLoading(true);
-    try {
-      const res = await complaintApi.predictCategory({
-        title: trimmedTitle,
-        description: effectiveDesc,
-      });
-
-      const data = res.data?.data;
-      if (data && data.predicted_category) {
-        setFormData(prev => ({ ...prev, category: data.predicted_category }));
-        setMlSuggestion(data);
-        setMlStale(false);
-      }
-    } catch (err) {
-      const fallbackCat = guessCategoryFromText(trimmedTitle + ' ' + trimmedDesc);
-      if (fallbackCat) {
-        setFormData(prev => ({ ...prev, category: fallbackCat }));
-        setMlSuggestion({
-          predicted_category: fallbackCat,
-          confidence: 0.7,
-          needs_review: true,
-          is_fallback: true,
-          message: 'Suggested via smart matching',
-        });
-        setMlStale(false);
-      } else {
-        const msg = err.response?.data?.message || err.message || 'AI suggestion service is currently unavailable.';
-        setMlError(msg);
-      }
-    } finally {
-      setMlLoading(false);
-    }
+  const handleSuggestCategory = () => {
+    performClassification(formData.subject, formData.desc, true);
   };
 
   const handleFileSelect = (e) => {
@@ -371,6 +355,9 @@ const FileComplaint = () => {
     try {
       const fd = new FormData();
       fd.append('category', formData.category);
+      if (formData.department) {
+        fd.append('department', formData.department);
+      }
       fd.append('title', trimmedTitle);
       fd.append('description', trimmedDesc);
       fd.append('isAnonymous', formData.isAnon ? 'true' : 'false');
@@ -432,30 +419,8 @@ const FileComplaint = () => {
     <div className="text-stone-800 flex h-dvh w-full overflow-hidden antialiased bg-[#FAF7F2]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       {navOpen && <div className="fixed inset-0 bg-black/40 z-20 md:hidden" onClick={() => setNavOpen(false)} />}
 
-      <aside className={`fixed md:static inset-y-0 left-0 z-30 w-64 bg-[#F5EFE6] border-r border-stone-200/80 flex flex-col justify-between shrink-0 transform transition-transform duration-200 ${navOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
-        <div className="flex flex-col h-full">
-          <Link to="/" className="h-16 flex items-center gap-2.5 px-6 border-b border-stone-200/80 shrink-0">
-            <div className="w-8 h-8 rounded-full overflow-hidden shrink-0"><img src={logo} alt="NyayaStack" className="h-full w-full object-cover scale-[1.3]" /></div>
-            <span className="font-bold text-lg text-[#6B1724]" style={{ fontFamily: "'Cinzel', serif" }}>NyayaStack</span>
-          </Link>
-          <nav className="p-4 space-y-1 text-xs font-semibold flex-1 overflow-y-auto">
-            <Link to="/dashboard" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60"><i className="fa-solid fa-house w-4"></i> Dashboard</Link>
-            <Link to="/file-complaint" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#6B1724] text-white shadow-sm"><i className="fa-solid fa-file-circle-plus w-4"></i> File a Complaint</Link>
-            <Link to="/my-petitions" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60"><i className="fa-solid fa-folder-open w-4"></i> My Petitions</Link>
-            <Link to="/petition-detail" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60"><i className="fa-solid fa-comments w-4"></i> Inquiry Chat</Link>
-            <Link to="/notifications" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60"><i className="fa-solid fa-bell w-4"></i> Notifications</Link>
-            <Link to="/ledger" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60"><i className="fa-solid fa-fingerprint w-4"></i> Audit Ledger</Link>
-            <Link to="/publictrans" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60"><i className="fa-solid fa-chart-pie w-4"></i> Public Transparency</Link>
-          </nav>
-          <div className="p-4 border-t border-stone-200/80 flex items-center justify-between bg-[#F0E8DC] shrink-0">
-            <div className="flex items-center gap-2.5">
-              <img src={anonymousAvatar} alt="Unknown Identity" className="w-8 h-8 rounded-full border border-[#6B1724]" />
-              <div><p className="text-xs font-bold">{localStorage.getItem('nyaya_user_name') || 'User'}</p><p className="text-[10px] text-stone-500 font-mono">{localStorage.getItem('nyaya_logged_user') || 'Student'}</p></div>
-            </div>
-            <Link to="/login" onClick={() => localStorage.removeItem('token')} className="text-stone-400 hover:text-[#6B1724] p-1.5"><i className="fa-solid fa-arrow-right-from-bracket text-xs"></i></Link>
-          </div>
-        </div>
-      </aside>
+      {/* USER SIDEBAR */}
+      <UserSidebar navOpen={navOpen} setNavOpen={setNavOpen} />
 
       <main className="flex-1 h-screen flex flex-col overflow-hidden bg-[#FAF7F2] w-full">
         <header className="h-16 bg-white border-b border-stone-200/80 px-8 flex items-center justify-between shrink-0 shadow-sm w-full">
@@ -518,41 +483,85 @@ const FileComplaint = () => {
                   </div>
                 </div>
 
-                {/* AI Suggestion Feedback Pill */}
-                {mlSuggestion && (
-                  <div className={`p-3.5 rounded-xl border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
-                    mlSuggestion.needs_review
-                      ? 'bg-amber-50/70 border-amber-200 text-amber-900'
-                      : 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
+                {/* AI Classification Feedback Banner */}
+                {mlLoading && (
+                  <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/70 text-xs text-amber-900 flex items-center gap-2 shadow-xs">
+                    <i className="fa-solid fa-spinner fa-spin text-amber-600 text-sm"></i>
+                    <span className="font-medium">Analyzing complaint with Gemini AI...</span>
+                  </div>
+                )}
+
+                {!mlLoading && mlSuggestion && (
+                  <div className={`p-4 rounded-xl border text-xs flex flex-col gap-2.5 shadow-xs transition-all ${
+                    mlSuggestion.needsHumanReview
+                      ? 'bg-amber-50/80 border-amber-300 text-amber-950'
+                      : 'bg-emerald-50/80 border-emerald-300 text-emerald-950'
                   }`}>
-                    <div className="flex items-center gap-2">
-                      <i className={`fa-solid ${mlSuggestion.needs_review ? 'fa-triangle-exclamation text-amber-600' : 'fa-circle-check text-emerald-600'}`}></i>
-                      <span>
-                        AI Predicted Category: <strong>{mlSuggestion.predicted_category}</strong>{' '}
-                        {mlSuggestion.confidence ? `(${Math.round((mlSuggestion.confidence || 0) * 100)}% confidence)` : ''}
-                      </span>
-                      {mlSuggestion.is_fallback ? (
-                        <span className="text-[10px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded font-semibold">
-                          Smart Match
-                        </span>
-                      ) : mlSuggestion.needs_review ? (
-                        <span className="text-[10px] bg-amber-200/60 px-2 py-0.5 rounded font-semibold text-amber-800">
-                          Review Recommended
-                        </span>
-                      ) : null}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2 border-stone-200/60">
+                      <div className="flex items-center gap-2">
+                        <i className={`fa-solid ${mlSuggestion.needsHumanReview ? 'fa-triangle-exclamation text-amber-600' : 'fa-circle-check text-emerald-600'} text-sm`}></i>
+                        <span className="font-bold text-sm">AI Complaint Classification</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {mlSuggestion.needsHumanReview ? (
+                          <span className="text-[10px] bg-amber-200 text-amber-900 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                            <i className="fa-solid fa-circle-exclamation"></i>
+                            Human Review Recommended
+                          </span>
+                        ) : (
+                          <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                            <i className="fa-solid fa-check"></i>
+                            Automated Match
+                          </span>
+                        )}
+                        {mlStale && (
+                          <span className="text-[11px] text-stone-500 italic">
+                            (Input changed)
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    {mlStale && (
-                      <span className="text-[11px] text-stone-500 italic">
-                        Input changed. Click Suggest Category to refresh.
-                      </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5 text-xs">
+                      <div className="bg-white/70 p-2.5 rounded-lg border border-stone-200/70">
+                        <span className="text-stone-500 font-semibold block text-[11px]">AI-Predicted Department:</span>
+                        <strong className="text-stone-900 text-xs block mt-0.5">{mlSuggestion.department || 'Administration'}</strong>
+                      </div>
+                      <div className="bg-white/70 p-2.5 rounded-lg border border-stone-200/70">
+                        <span className="text-stone-500 font-semibold block text-[11px]">AI-Predicted Category:</span>
+                        <strong className="text-[#6B1724] text-xs block mt-0.5">{mlSuggestion.category}</strong>
+                      </div>
+                    </div>
+
+                    {mlSuggestion.explanation && (
+                      <div className="text-xs pt-1.5 border-t border-stone-200/60 text-stone-700">
+                        <strong className="font-semibold text-stone-800">Reason: </strong>
+                        <span>{mlSuggestion.explanation}</span>
+                      </div>
+                    )}
+
+                    {mlSuggestion.needsHumanReview && (
+                      <div className="text-[11px] text-amber-900 bg-amber-100/80 p-2.5 rounded-lg flex items-center gap-2 mt-0.5 border border-amber-200">
+                        <i className="fa-solid fa-triangle-exclamation text-amber-600 shrink-0"></i>
+                        <span>This classification may require human review. You can also manually adjust the category below.</span>
+                      </div>
                     )}
                   </div>
                 )}
 
                 {mlError && (
-                  <div className="p-3 bg-stone-50 border border-stone-200 text-stone-700 text-xs rounded-xl flex items-center gap-2">
-                    <i className="fa-solid fa-circle-info text-stone-500"></i>
-                    <span>{mlError}</span>
+                  <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl flex items-center justify-between shadow-xs">
+                    <div className="flex items-center gap-2">
+                      <i className="fa-solid fa-circle-exclamation text-rose-600"></i>
+                      <span>{mlError}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSuggestCategory}
+                      className="text-[11px] font-bold text-rose-700 hover:text-rose-900 underline ml-2 shrink-0 cursor-pointer"
+                    >
+                      Retry AI Classification
+                    </button>
                   </div>
                 )}
 
@@ -569,14 +578,14 @@ const FileComplaint = () => {
                             setIsManualCategory(false);
                             handleSuggestCategory();
                           }}
-                          className="text-[11px] text-[#6B1724] hover:underline font-bold flex items-center gap-1"
+                          className="text-[11px] text-[#6B1724] hover:underline font-bold flex items-center gap-1 cursor-pointer"
                         >
                           <i className="fa-solid fa-rotate-left"></i>
                           Revert to AI Auto-Detection
                         </button>
                       ) : (
                         <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <i className="fa-solid fa-robot"></i> Auto-Fetched by ML
+                          <i className="fa-solid fa-robot"></i> Auto-Classified by Gemini AI
                         </span>
                       )}
                     </div>
@@ -597,8 +606,8 @@ const FileComplaint = () => {
                     </select>
                     <p className="text-[11px] text-stone-500 mt-1">
                       {isManualCategory
-                        ? 'Manual selection active. The ML model will not overwrite your chosen category.'
-                        : 'Category is automatically classified by the ML service as you type. You can also pick a category manually.'}
+                        ? 'Manual selection active. The AI classifier will not overwrite your chosen category.'
+                        : 'Category and department are automatically classified by Gemini as you enter the title and description. You can also pick a category manually.'}
                     </p>
                   </div>
                   <div>
@@ -828,10 +837,21 @@ const FileComplaint = () => {
                     <div className="text-right">
                       <span className="font-bold text-base text-[#6B1724]">{formData.category}</span>
                       <span className="block text-[11px] text-stone-500 font-normal">
-                        {isManualCategory ? '✏️ Manually Selected' : '✨ Automatically Fetched by ML Service'}
+                        {isManualCategory ? '✏️ Manually Selected' : '✨ Automatically Classified by Gemini AI'}
                       </span>
                     </div>
                   </div>
+                  {formData.department && (
+                    <div className="flex justify-between py-3 border-b border-stone-200">
+                      <span className="text-stone-500 font-semibold">Department:</span>
+                      <div className="text-right">
+                        <span className="font-bold text-base text-stone-800">{formData.department}</span>
+                        <span className="block text-[11px] text-stone-500 font-normal">
+                          Grievance routing jurisdiction
+                        </span>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex justify-between py-3 border-b border-stone-200">
                     <span className="text-stone-500 font-semibold">Petitioner Privacy:</span>
                     <span className={`font-bold flex items-center gap-1.5 ${formData.isAnon ? 'text-[#6B1724]' : 'text-stone-700'}`}>

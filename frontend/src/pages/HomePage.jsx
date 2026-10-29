@@ -30,6 +30,12 @@ function Home() {
         {/* Right: buttons */}
         <div className="flex items-center gap-2 sm:gap-3 justify-self-end col-start-3">
           <Link
+            to="/admin-login"
+            className="hidden lg:inline text-xs font-semibold text-stone-600 hover:text-[#7a1620] hover:underline mr-1"
+          >
+            Admin Login
+          </Link>
+          <Link
             to="/authority-login"
             className="hidden md:inline text-sm font-medium text-[#7a1620] hover:underline mr-1"
           >
@@ -95,6 +101,13 @@ function Home() {
             Are you an authority?{' '}
             <Link to="/authority-login" className="font-semibold text-[#7a1620] hover:underline">
               Authority Login
+            </Link>
+          </p>
+
+          <p className="mt-2 text-xs text-stone-500">
+            System Administrator?{' '}
+            <Link to="/admin-login" className="font-semibold text-[#7a1620] hover:underline">
+              Admin Login
             </Link>
           </p>
         </div>

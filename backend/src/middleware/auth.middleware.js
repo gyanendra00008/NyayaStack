@@ -161,6 +161,13 @@ async function isExistingUser(req, res, next) {
   }
 }
 
+function setExpectedRole(role) {
+  return (req, res, next) => {
+    req.expectedRole = role;
+    next();
+  };
+}
+
 /**
  * Validates request payload and user existence for Login
  */
@@ -209,38 +216,26 @@ async function isUser(req, res, next) {
       });
     }
 
-    // Check authority verification status before regular verification
-    if (user.role === "officer") {
-      if (user.verificationStatus === "pending") {
-        return res.status(403).json({
-          success: false,
-          message: "Your authority registration is pending administrator verification. Please wait for approval.",
-        });
-      }
-      if (user.verificationStatus === "rejected") {
-        return res.status(403).json({
-          success: false,
-          message: user.rejectionReason
-            ? `Your authority registration was rejected by the administrator. Reason: ${user.rejectionReason}`
-            : "Your authority registration was rejected by the administrator.",
-        });
-      }
-      if (user.verificationStatus !== "approved") {
-        return res.status(403).json({
-          success: false,
-          message: "Your authority registration is pending administrator verification. Please wait for approval.",
-        });
+    const rawExpectedRole =
+      req.expectedRole ||
+      req.body?.role ||
+      req.body?.loginType ||
+      req.query?.role ||
+      req.query?.loginType;
+
+    let expectedRole = null;
+    if (rawExpectedRole && typeof rawExpectedRole === "string") {
+      const normalized = rawExpectedRole.trim().toLowerCase();
+      if (normalized === "user" || normalized === "student") {
+        expectedRole = "user";
+      } else if (normalized === "officer" || normalized === "authority") {
+        expectedRole = "officer";
+      } else if (normalized === "admin" || normalized === "administrator") {
+        expectedRole = "admin";
       }
     }
 
-    // Reject unverified users (e.g. students who have not verified email OTP)
-    if (!user.isVerified) {
-      return res.status(403).json({
-        success: false,
-        message: "Account not verified. Please verify your email before logging in.",
-      });
-    }
-
+    req.expectedRole = expectedRole;
     req.user = user;
     req.loginPassword = password;
     next();
@@ -513,6 +508,7 @@ async function authenticateOrIdentifyUser(req, res, next) {
 module.exports = {
   isExistingUser,
   isUser,
+  setExpectedRole,
   validateUser,
   validateForgotPassword,
   validateVerifyResetOtp,

@@ -161,6 +161,7 @@ async function findLowestRankAuthority({ department, category, UserModel }) {
   const query = {
     role: "officer",
     verificationStatus: "approved",
+    isVerified: true,
     department: resolvedDept,
   };
 
@@ -224,6 +225,136 @@ async function findLowestRankAuthority({ department, category, UserModel }) {
   };
 }
 
+/**
+ * Returns the canonical designation string for a given department and numeric rank.
+ */
+function getDesignationForRank(department, rank) {
+  if (!department || typeof rank !== "number" || rank < 1) return "";
+  const list = DEPARTMENT_DESIGNATIONS[department];
+  if (!Array.isArray(list) || list.length === 0) return "";
+  const idx = rank - 1;
+  return list[idx] || "";
+}
+
+/**
+ * Resolves the next higher authority in the department hierarchy.
+ * In NyayaStack:
+ * - Rank 1 is the highest authority (e.g. Dean, Chief Warden, Controller of Exams).
+ * - Higher numbers represent lower ranks (e.g. Rank 6 = Caretaker).
+ * - A "higher authority" has effectiveRank < currentRank.
+ * - We select the immediate next higher rank (maximum effectiveRank strictly less than currentRank).
+ * - If no higher authority exists (e.g. already at Rank 1), or no higher authority is configured,
+ *   flags for Admin attention.
+ */
+async function findNextHigherAuthority({
+  department,
+  category,
+  currentRank,
+  currentOfficerId,
+  UserModel,
+}) {
+  const resolvedDept = department || CATEGORY_TO_DEPARTMENT[category] || "Administration";
+  const deptDesignations = DEPARTMENT_DESIGNATIONS[resolvedDept] || [];
+
+  const effectiveCurrentRank =
+    typeof currentRank === "number" && currentRank > 0
+      ? currentRank
+      : getLowestRankNumber(resolvedDept);
+
+  // If already at Rank 1 (highest level in department), cannot escalate further within department
+  if (effectiveCurrentRank <= 1) {
+    return {
+      hasHigherAuthority: false,
+      requiresAdminAttention: true,
+      assignedTo: null,
+      assignedOfficer: null,
+      assignedDesignation: "Office of the Ombudsman / Executive Admin",
+      assignedRank: 0,
+      department: resolvedDept,
+    };
+  }
+
+  if (UserModel) {
+    const query = {
+      role: "officer",
+      verificationStatus: "approved",
+      isVerified: true,
+      department: resolvedDept,
+    };
+
+    const officers = await UserModel.find(query).lean();
+
+    const normalizedCat = (category || "").trim().toLowerCase();
+    const eligibleOfficers = officers.filter((officer) => {
+      if (!officer.category || officer.category.trim() === "" || officer.category.toLowerCase() === "all") {
+        return true;
+      }
+      return officer.category.trim().toLowerCase() === normalizedCat;
+    });
+
+    const rankedOfficers = eligibleOfficers.map((officer) => {
+      const calcRank = getRankForDesignation(resolvedDept, officer.designation);
+      const effectiveRank =
+        typeof officer.rank === "number" && officer.rank !== 999 ? officer.rank : calcRank;
+      return {
+        ...officer,
+        effectiveRank,
+      };
+    });
+
+    // Candidates whose rank is strictly higher than currentRank (i.e. effectiveRank < effectiveCurrentRank)
+    const higherCandidates = rankedOfficers.filter((o) => {
+      if (o.effectiveRank >= effectiveCurrentRank) return false;
+      if (currentOfficerId && String(o._id) === String(currentOfficerId)) return false;
+      return true;
+    });
+
+    if (higherCandidates.length > 0) {
+      // Sort descending by effectiveRank to get the immediate step up (e.g. 5 before 3)
+      higherCandidates.sort((a, b) => b.effectiveRank - a.effectiveRank);
+      const nextOfficer = higherCandidates[0];
+
+      return {
+        hasHigherAuthority: true,
+        requiresAdminAttention: false,
+        assignedTo: nextOfficer._id,
+        assignedOfficer: nextOfficer,
+        assignedDesignation:
+          nextOfficer.designation || getDesignationForRank(resolvedDept, nextOfficer.effectiveRank),
+        assignedRank: nextOfficer.effectiveRank,
+        department: resolvedDept,
+      };
+    }
+  }
+
+  // If no higher registered/approved officer is found in DB, check canonical hierarchy for next step
+  const nextRankNumber = effectiveCurrentRank - 1;
+  const canonicalDesignation = getDesignationForRank(resolvedDept, nextRankNumber);
+
+  if (canonicalDesignation) {
+    return {
+      hasHigherAuthority: true,
+      requiresAdminAttention: false,
+      assignedTo: null,
+      assignedOfficer: null,
+      assignedDesignation: canonicalDesignation,
+      assignedRank: nextRankNumber,
+      department: resolvedDept,
+    };
+  }
+
+  // Otherwise, top of hierarchy reached or no higher authority configured -> flag for admin attention
+  return {
+    hasHigherAuthority: false,
+    requiresAdminAttention: true,
+    assignedTo: null,
+    assignedOfficer: null,
+    assignedDesignation: "Office of the Ombudsman / Executive Admin",
+    assignedRank: 0,
+    department: resolvedDept,
+  };
+}
+
 module.exports = {
   DEPARTMENT_DESIGNATIONS,
   CATEGORY_TO_DEPARTMENT,
@@ -231,5 +362,7 @@ module.exports = {
   getRankForDesignation,
   getLowestRankDesignation,
   getLowestRankNumber,
+  getDesignationForRank,
   findLowestRankAuthority,
+  findNextHigherAuthority,
 };
