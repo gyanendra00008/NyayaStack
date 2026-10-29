@@ -83,6 +83,8 @@ export const adminApi = {
   approveAuthorityRequest: (id) => api.patch(`/admin/authority-requests/${id}/approve`),
   rejectAuthorityRequest: (id, reason) => api.patch(`/admin/authority-requests/${id}/reject`, { reason }),
   getStats: () => api.get('/admin/dashboard'),
+  // Hash-chain: admin can resolve an entire chain from any complaint in it
+  resolveChain: (complaintId) => api.patch(`/admin/complaints/${complaintId}/resolve-chain`),
 };
 
 // Health API methods
@@ -135,6 +137,9 @@ export const complaintApi = {
   getAssignedComplaints: (params = {}) => api.get('/complaints/assigned', { params }),
   updateComplaintStatus: (complaintId, payload) => api.patch(`/complaints/${complaintId}/status`, payload),
   getComplaintById: (complaintId) => api.get(`/complaints/${complaintId}`),
+  // Hash-chain endpoints
+  getComplaintChain: (complaintId) => api.get(`/complaints/${complaintId}/chain`),
+  resolveComplaintChain: (complaintId) => api.patch(`/complaints/${complaintId}/resolve-chain`),
 };
 
 export default api;

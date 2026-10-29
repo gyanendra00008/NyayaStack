@@ -13,6 +13,8 @@ const {
   getMySlaSummary,
   getAssignedComplaints,
   updateComplaintStatus,
+  getComplaintChain,
+  resolveComplaintChain,
   predictComplaintCategory,
   getCategories,
   getComplaintById,
@@ -75,6 +77,21 @@ router.patch(
   authenticateUser,
   authorizeRoles("officer", "admin"),
   updateComplaintStatus
+);
+
+// GET /api/complaints/:complaintId/chain - Retrieve the full hash-chain for a complaint
+router.get(
+  "/:complaintId/chain",
+  authenticateUser,
+  getComplaintChain
+);
+
+// PATCH /api/complaints/:complaintId/resolve-chain - Resolve all complaints in a chain (authority/admin)
+router.patch(
+  "/:complaintId/resolve-chain",
+  authenticateUser,
+  authorizeRoles("officer", "admin"),
+  resolveComplaintChain
 );
 
 // GET /api/complaints/:complaintId - Retrieve a single complaint by ID

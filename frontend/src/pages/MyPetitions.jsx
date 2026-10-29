@@ -17,8 +17,6 @@ const STATUS_STYLES = {
 const FILTERS = ['All', 'Filed', 'In Review', 'In Progress', 'Resolved', 'Rejected'];
 
 const MyPetitions = () => {
-  const isOfficer = localStorage.getItem('nyaya_user_role') === 'officer';
-  const [viewScope, setViewScope] = useState(isOfficer ? 'assigned' : 'filed');
   const [filter, setFilter] = useState('All');
   const [backendPetitions, setBackendPetitions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -32,12 +30,7 @@ const MyPetitions = () => {
     if (token) {
       setLoading(true);
       setError('');
-      const apiCall =
-        viewScope === 'assigned'
-          ? complaintApi.getAssignedComplaints({ limit: 50 })
-          : complaintApi.getMyComplaints({ limit: 50 });
-
-      apiCall
+      complaintApi.getMyComplaints({ limit: 50 })
         .then((res) => {
           if (isMounted && res.data?.data) {
             const mapped = res.data.data.map((c) => ({
@@ -49,6 +42,9 @@ const MyPetitions = () => {
               priority: c.priority || 'Standard',
               status: c.status || 'Filed',
               isAnonymous: Boolean(c.isAnonymous),
+              chainId: c.chainId || null,
+              chainRoot: c.chainRoot || null,
+              parentComplaintId: c.parentComplaintId || null,
               time: c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recently',
               desc: c.description,
               attachments: c.attachments || [],
@@ -68,7 +64,7 @@ const MyPetitions = () => {
     }
 
     return () => { isMounted = false; };
-  }, [viewScope]);
+  }, []);
 
   const petitions = useMemo(() => {
     // Only real complaints fetched directly from the backend API for this authenticated user
@@ -130,39 +126,6 @@ const MyPetitions = () => {
             </div>
           )}
 
-          {/* Officer Scope Toggle */}
-          {isOfficer && (
-            <div className="bg-white p-3 rounded-2xl border border-stone-200/80 shadow-xs flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setViewScope('assigned')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                    viewScope === 'assigned'
-                      ? 'bg-[#6B1724] text-white shadow-xs'
-                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-                  }`}
-                >
-                  <i className="fa-solid fa-inbox"></i> Assigned to My Desk (Lowest Rank Authority)
-                </button>
-                <button
-                  onClick={() => setViewScope('filed')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                    viewScope === 'filed'
-                      ? 'bg-[#6B1724] text-white shadow-xs'
-                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-                  }`}
-                >
-                  <i className="fa-solid fa-user-pen"></i> Filed by Me
-                </button>
-              </div>
-              <span className="text-xs text-stone-500 font-semibold hidden md:inline">
-                {viewScope === 'assigned'
-                  ? 'Showing grievances routed to your lowest-rank authority desk'
-                  : 'Showing grievances created by your personal account'}
-              </span>
-            </div>
-          )}
-
           <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
             {FILTERS.map((f) => (
               <button
@@ -199,7 +162,19 @@ const MyPetitions = () => {
                   ) : (
                     visible.map((p, idx) => (
                       <tr key={(p.id || idx) + idx} className="hover:bg-stone-50 transition">
-                        <td className="py-3.5 px-5 font-mono font-bold text-[#6B1724]">{p.id}</td>
+                        <td className="py-3.5 px-5 font-mono font-bold text-[#6B1724]">
+                          <div className="flex flex-col">
+                            <span>{p.id}</span>
+                            {p.chainId && (
+                              <span
+                                className="inline-flex items-center gap-1 text-[9px] font-sans font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded w-fit mt-1"
+                                title={`Linked in Hash Chain. Root: ${p.chainRoot || p.id}`}
+                              >
+                                <i className="fa-solid fa-link text-[8px]"></i> Chained
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="py-3.5 px-4 max-w-xs truncate" title={p.subject}>
                           <div className="flex items-center gap-1.5 truncate">
                             {p.isAnonymous && (

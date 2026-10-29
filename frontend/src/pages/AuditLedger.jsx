@@ -43,9 +43,6 @@ export default function AuditLedger() {
             <Link to="/petition-detail" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition"><i className="fa-solid fa-comments w-4"></i> Inquiry Chat</Link>
             <Link to="/ledger" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#6B1724] text-white shadow-sm"><i className="fa-solid fa-fingerprint w-4"></i> Audit Ledger</Link>
             <Link to="/publictrans" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition"><i className="fa-solid fa-chart-pie w-4"></i> Public Transparency</Link>
-            <div className="pt-3 border-t border-stone-200/60 mt-3">
-              <Link to="/officerdash" className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-amber-900 bg-amber-100/50 hover:bg-amber-100 transition text-[11px]"><i className="fa-solid fa-user-shield w-4 text-amber-700"></i> Switch to Officer View</Link>
-            </div>
           </nav>
         </div>
         <div className="p-4 border-t border-stone-200/80 flex items-center gap-2 text-xs text-stone-500 bg-[#F0E8DC]">
