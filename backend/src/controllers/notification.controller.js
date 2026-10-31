@@ -32,7 +32,7 @@ const getNotifications = async (req, res) => {
         if (c.status === "Resolved") {
           notifications.push({
             id: `res-${c.complaintId}`,
-            type: "ledger",
+            type: "status",
             icon: "fa-circle-check",
             title: `Petition Resolved: ${c.complaintId}`,
             text: `Your petition "${c.title}" has been successfully resolved.`,

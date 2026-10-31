@@ -7,7 +7,8 @@
     "dev": "nodemon server.js",
     "start": "node server.js",
     "create-admin": "node scripts/createAdmin.js",
-    "test": "NODE_ENV=test node --test tests/**/*.test.js"
+    "cleanup-chaining": "node scripts/cleanupAuditLedgerAndChaining.js",
+    "test": "NODE_ENV=test node --test --test-force-exit tests/**/*.test.js"
   },
   "dependencies": {
     "@getbrevo/brevo": "^6.2.0",

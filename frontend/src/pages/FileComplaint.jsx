@@ -44,11 +44,6 @@ const FileComplaint = () => {
   const [existingTitles, setExistingTitles] = useState([]);
   const [todayComplaintsCount, setTodayComplaintsCount] = useState(0);
 
-  // Hash-chain state
-  const [myComplaints, setMyComplaints] = useState([]);
-  const [linkToExisting, setLinkToExisting] = useState(false);
-  const [parentComplaintId, setParentComplaintId] = useState('');
-
   // Ensure user is authenticated to access complaint upload/filing
   useEffect(() => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -80,8 +75,6 @@ const FileComplaint = () => {
         const complaintsList = res.data?.data || [];
         const titles = complaintsList.map(c => (c.title || c.subject || '').trim().toLowerCase()).filter(Boolean);
         setExistingTitles(titles);
-        // Store full list for chain linking (only non-resolved complaints)
-        setMyComplaints(complaintsList.filter(c => c.status !== 'Resolved' && c.status !== 'Rejected'));
 
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
@@ -361,11 +354,6 @@ const FileComplaint = () => {
       fd.append('title', trimmedTitle);
       fd.append('description', trimmedDesc);
       fd.append('isAnonymous', formData.isAnon ? 'true' : 'false');
-
-      // Hash-chain: attach parent complaint ID if user linked this to an existing one
-      if (linkToExisting && parentComplaintId) {
-        fd.append('parentComplaintId', parentComplaintId);
-      }
 
       files.forEach((file) => {
         fd.append('attachments', file);
@@ -684,64 +672,6 @@ const FileComplaint = () => {
                   ></textarea>
                 </div>
 
-                {/* ── Hash-Chain Section ─────────────────────────────────── */}
-                <div className="border border-stone-200 rounded-xl p-5 bg-stone-50/50 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <i className="fa-solid fa-link text-[#6B1724] text-sm"></i>
-                      <span className="text-sm font-semibold">Link to Existing Complaint (Hash Chain)</span>
-                    </div>
-                    <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-stone-600">
-                      <input
-                        type="checkbox"
-                        checked={linkToExisting}
-                        onChange={(e) => {
-                          setLinkToExisting(e.target.checked);
-                          if (!e.target.checked) setParentComplaintId('');
-                        }}
-                        className="w-4 h-4 accent-[#6B1724]"
-                      />
-                      This complaint is related to a previous one
-                    </label>
-                  </div>
-
-                  {linkToExisting && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-stone-500">
-                        Select the complaint this one is directly related to. When any complaint in the chain is resolved by the authority, all linked complaints will be automatically marked as resolved together.
-                      </p>
-                      {myComplaints.length === 0 ? (
-                        <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center gap-2">
-                          <i className="fa-solid fa-triangle-exclamation text-amber-500"></i>
-                          <span>You have no active complaints to link to. Submit at least one complaint first.</span>
-                        </div>
-                      ) : (
-                        <select
-                          value={parentComplaintId}
-                          onChange={(e) => setParentComplaintId(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl border border-stone-300 bg-white text-sm focus:outline-none focus:border-[#6B1724]"
-                        >
-                          <option value="">— Select parent complaint to chain —</option>
-                          {myComplaints.map((c) => (
-                            <option key={c.complaintId} value={c.complaintId}>
-                              [{c.complaintId}] {c.title || c.subject} ({c.status})
-                            </option>
-                          ))}
-                        </select>
-                      )}
-
-                      {parentComplaintId && (
-                        <div className="text-xs bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-lg px-4 py-3 flex items-center gap-2">
-                          <i className="fa-solid fa-link text-indigo-600"></i>
-                          <span>
-                            This complaint will be chained with <strong>{parentComplaintId}</strong>. When an authority marks any linked issue as Resolved, all issues in this chain will automatically be resolved!
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
                 <div className="flex justify-end pt-2">
                   <button
                     onClick={() => changeStep(2)}
@@ -888,16 +818,6 @@ const FileComplaint = () => {
                       {files.length} {files.length === 1 ? 'file' : 'files'} attached
                     </span>
                   </div>
-                  {linkToExisting && parentComplaintId && (
-                    <div className="flex justify-between py-3 border-t border-stone-200">
-                      <span className="text-stone-500 font-semibold flex items-center gap-1.5">
-                        <i className="fa-solid fa-link text-[#6B1724]"></i> Hash Chain Parent:
-                      </span>
-                      <span className="font-bold text-[#6B1724] font-mono">
-                        {parentComplaintId}
-                      </span>
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex justify-between pt-8 mt-auto">

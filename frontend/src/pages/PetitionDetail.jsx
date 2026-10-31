@@ -152,12 +152,6 @@ const PetitionDetails = () => {
               </p>
             </div>
           </div>
-          <Link
-            to="/ledger"
-            className="px-3.5 py-1.5 bg-[#FAF5EE] hover:bg-stone-100 border border-stone-300 rounded-xl text-xs font-semibold text-[#6B1724] transition flex items-center gap-1.5 shadow-sm"
-          >
-            <i className="fa-solid fa-fingerprint"></i> SHA-256 Ledger
-          </Link>
         </header>
 
         {/* Scrollable Body Content */}
@@ -395,16 +389,6 @@ const PetitionDetails = () => {
                   </p>
                 </div>
               )}
-
-              <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
-                <span className="text-stone-500">Immutable Hash Chain:</span>
-                <Link
-                  to="/ledger"
-                  className="text-[#6B1724] font-bold hover:underline flex items-center gap-1"
-                >
-                  <i className="fa-solid fa-fingerprint text-[10px]"></i> View Public Ledger
-                </Link>
-              </div>
             </div>
           </div>
         </div>

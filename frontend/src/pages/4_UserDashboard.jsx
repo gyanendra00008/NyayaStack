@@ -46,9 +46,6 @@ const UserDashboard = () => {
               <i className="fa-solid fa-bell w-4"></i> Notifications
               <span className="ml-auto bg-rose-100 text-[#6B1724] px-1.5 py-0.5 rounded-full text-[10px] font-bold">4</span>
             </a>
-            <a href="/ledger" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
-              <i className="fa-solid fa-fingerprint w-4"></i> Audit Ledger
-            </a>
             <a href="/publictrans" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition">
               <i className="fa-solid fa-chart-pie w-4"></i> Public Transparency
             </a>
