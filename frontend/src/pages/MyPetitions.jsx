@@ -564,19 +564,9 @@ export default function MyPetitions() {
                           className="hover:bg-stone-50/80 transition cursor-pointer"
                           onClick={() => setActivePetition(p)}
                         >
-                          {/* ID & Chain Badge */}
+                          {/* Complaint ID */}
                           <td className="py-3.5 px-5 font-mono font-bold text-[#6B1724]">
-                            <div className="flex flex-col items-start gap-1">
-                              <span className="hover:underline">{cid}</span>
-                              {p.chainId && (
-                                <span
-                                  className="inline-flex items-center gap-1 text-[9px] font-sans font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded"
-                                  title={`Linked to Immutable Hash-Chain (Root: ${p.chainRoot || cid})`}
-                                >
-                                  <i className="fa-solid fa-link text-[8px]"></i> Chained
-                                </span>
-                              )}
-                            </div>
+                            <span className="hover:underline">{cid}</span>
                           </td>
 
                           {/* Title */}
@@ -940,29 +930,6 @@ export default function MyPetitions() {
                         </p>
                       </div>
                     ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Cryptographic Hash-Chain Verification */}
-              {activePetition.chainId && (
-                <div className="p-3.5 bg-indigo-50/60 border border-indigo-200 rounded-xl">
-                  <div className="flex items-center gap-2 text-indigo-900 font-bold mb-1">
-                    <i className="fa-solid fa-shield-halved text-indigo-600"></i>
-                    <span>Tamper-Evident Hash Chain Verified</span>
-                  </div>
-                  <p className="text-[11px] text-indigo-700 leading-normal">
-                    This grievance is cryptographically sealed into NyayaStack's audit ledger.
-                  </p>
-                  <div className="mt-2 font-mono text-[10px] text-indigo-900 break-all space-y-0.5">
-                    <div>
-                      <span className="text-indigo-400">Chain ID:</span> {activePetition.chainId}
-                    </div>
-                    {activePetition.chainRoot && (
-                      <div>
-                        <span className="text-indigo-400">Root ID:</span> {activePetition.chainRoot}
-                      </div>
-                    )}
                   </div>
                 </div>
               )}

@@ -239,31 +239,6 @@ const complaintSchema = new mongoose.Schema(
       type: [escalationHistorySchema],
       default: [],
     },
-
-    // ── Hash-Chain Fields ──────────────────────────────────────────────────────
-    // parentComplaintId: the complaintId of the directly preceding complaint in the chain.
-    // null means this is the root / standalone complaint.
-    parentComplaintId: {
-      type: String,
-      default: null,
-      trim: true,
-      index: true,
-    },
-    // chainId: shared identifier for all complaints in one chain.
-    // Set to the SHA-256 hex of the root complaintId on creation.
-    // null for standalone (unchained) complaints.
-    chainId: {
-      type: String,
-      default: null,
-      trim: true,
-      index: true,
-    },
-    // chainRoot: the complaintId of the very first complaint in this chain.
-    chainRoot: {
-      type: String,
-      default: null,
-      trim: true,
-    },
   },
   {
     timestamps: true,

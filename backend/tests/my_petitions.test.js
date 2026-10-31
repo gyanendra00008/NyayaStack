@@ -275,7 +275,7 @@ describe("My Petitions Complete Functional & Integration Suite", () => {
     assert.equal(page2Body.pagination.page, 2);
   });
 
-  it("10. Petition Details: Owner can inspect full details including attachments and chain info", async () => {
+  it("10. Petition Details: Owner can inspect full details including attachments", async () => {
     const detailRes = await fetch(`${baseUrl}/complaints/${petition1Id}`, {
       headers: { Authorization: `Bearer ${user1Token}` },
     });

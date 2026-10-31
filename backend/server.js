@@ -1,5 +1,8 @@
-const dns = require("dns");
-dns.setServers(["8.8.8.8", "1.1.1.1"]); // TEMP: local testing only
+// Configure custom DNS resolvers if requested via environment
+if (process.env.SET_PUBLIC_DNS === "true") {
+  const dns = require("dns");
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+}
 
 require('dotenv').config();
 const app = require('./src/app.js');

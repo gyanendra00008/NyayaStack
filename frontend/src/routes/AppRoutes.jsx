@@ -21,7 +21,6 @@ import Notifications from "../pages/Notifications";
 import OfficerDashboard from "../pages/OfficerDashboard";
 import AdminDashboard from "../pages/AdminDashboard";
 import AdminAuthorityRequests from "../pages/AdminAuthorityRequests";
-import AuditLedger from "../pages/AuditLedger";
 import PublicTransparency from "../pages/PublicTransparency";
 
 export default function AppRoutes() {
@@ -46,7 +45,6 @@ export default function AppRoutes() {
       <Route path="/public-dashboard" element={<PublicTransparency />} />
       <Route path="/public" element={<PublicTransparency />} />
       <Route path="/transparency" element={<PublicTransparency />} />
-      <Route path="/ledger" element={<AuditLedger />} />
 
       {/* Protected Student / User Pages (Officers & Admin cannot access) */}
       <Route
@@ -144,14 +142,6 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute redirectTo="/authority/login" roleRequired="officer">
             <PublicTransparency />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/officer/ledger"
-        element={
-          <ProtectedRoute redirectTo="/authority/login" roleRequired="officer">
-            <AuditLedger />
           </ProtectedRoute>
         }
       />

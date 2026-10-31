@@ -31,129 +31,7 @@ const CATEGORY_COLORS = {
 };
 
 // Seed authentic institutional petitions to supplement database records
-const SEED_PETITIONS = [
-  {
-    complaintId: 'VSP-M4T9B2-3A7F1C',
-    category: 'Hostel',
-    title: 'Hostel Block C 3rd Floor Water Supply Disruption',
-    description: 'Water pressure dropped completely on the third floor of Hostel Block C affecting wings A and B since yesterday evening. Over 40 rooms are currently impacted.',
-    status: 'In Progress',
-    isAnonymous: false,
-    createdAt: new Date(Date.now() - 18 * 3600 * 1000).toISOString(),
-    resolutionNote: 'Plumbing maintenance contractor issued emergency work ticket #WB-409. Booster pump valves being replaced.',
-    assignedTo: 'Hostel Estate & Works Cell',
-    attachments: [],
-  },
-  {
-    complaintId: 'VSP-K812AC-99F120',
-    category: 'Infrastructure',
-    title: 'Central Library 2nd Floor Wi-Fi Access Point Frequent Dropouts',
-    description: 'Students in Reading Hall 2 experience repeated connection drops from AP-LIB-04 with DNS resolution timeouts during research work.',
-    status: 'In Review',
-    isAnonymous: true,
-    createdAt: new Date(Date.now() - 36 * 3600 * 1000).toISOString(),
-    resolutionNote: 'Network Operations Center verified channel interference and scheduled access point recalibration.',
-    assignedTo: 'Campus Network Operations Center (NOC)',
-    attachments: [],
-  },
-  {
-    complaintId: 'VSP-M791DF-55B214',
-    category: 'Mess',
-    title: 'Dining Hall 1 Meal Hygiene Inspection & Quality Review',
-    description: 'Breakfast service on Thursday observed undercooked bread and cold milk dispensers. Requesting formal student mess committee review.',
-    status: 'Resolved',
-    isAnonymous: false,
-    createdAt: new Date(Date.now() - 54 * 3600 * 1000).toISOString(),
-    resolutionNote: 'Warden conducted spot inspection; vendor penalized and daily kitchen temperature logs mandated.',
-    assignedTo: 'Student Mess Advisory Council',
-    attachments: [],
-  },
-  {
-    complaintId: 'VSP-AC8401-229E04',
-    category: 'Academic',
-    title: 'Expedited Semester Marksheet Verification for Internship Clearance',
-    description: 'Official marksheet endorsement required by multinational employer within 48 hours for summer analyst onboarding.',
-    status: 'Resolved',
-    isAnonymous: false,
-    createdAt: new Date(Date.now() - 72 * 3600 * 1000).toISOString(),
-    resolutionNote: 'Dean Academic Affairs digitally signed and transmitted cryptographic verification token directly to company portal.',
-    assignedTo: 'Academic Examination Section',
-    attachments: [],
-  },
-  {
-    complaintId: 'VSP-TR7712-441A98',
-    category: 'Transport',
-    title: 'Institute Morning Shuttle Bus Route #4 Timing Discrepancy',
-    description: 'Shuttle scheduled from Metro Junction at 08:30 AM frequently skips departure or arrives 25 minutes late, causing students to miss 09:00 AM lab sessions.',
-    status: 'In Review',
-    isAnonymous: false,
-    createdAt: new Date(Date.now() - 42 * 3600 * 1000).toISOString(),
-    resolutionNote: 'Transport officer adjusted route rotation and appointed dedicated standby driver for peak morning hours.',
-    assignedTo: 'Institute Fleet Management Office',
-    attachments: [],
-  },
-  {
-    complaintId: 'VSP-EE5510-18C339',
-    category: 'Infrastructure',
-    title: 'Lecture Hall Complex 204 Overhead Projector & Speaker Noise',
-    description: 'Audio buzzing through ceiling speakers and HDMI connection flicker during daily 200-seat engineering lectures.',
-    status: 'Resolved',
-    isAnonymous: false,
-    createdAt: new Date(Date.now() - 96 * 3600 * 1000).toISOString(),
-    resolutionNote: 'Audio-visual team replaced faulty shielded patch panel cable and re-calibrated projector output.',
-    assignedTo: 'Educational Technology Cell (ET Cell)',
-    attachments: [],
-  },
-  {
-    complaintId: 'VSP-FN3391-778842',
-    category: 'Finance',
-    title: 'Duplicate Caution Deposit Debit on Online Fee Portal',
-    description: 'Net banking session timed out during semester registration, resulting in duplicate transaction of INR 5,000 caution deposit.',
-    status: 'Resolved',
-    isAnonymous: false,
-    createdAt: new Date(Date.now() - 110 * 3600 * 1000).toISOString(),
-    resolutionNote: 'Accounts section reconciled banking gateway ledger and processed automatic refund credit.',
-    assignedTo: 'Finance & Accounts Branch',
-    attachments: [],
-  },
-  {
-    complaintId: 'VSP-SC8831-550912',
-    category: 'Infrastructure',
-    title: 'Campus Gate No. 2 Pathway High-Mast Streetlights Inoperative',
-    description: 'Dark pedestrian walkway connecting Gate 2 to PG hostel creates safety concern for students returning late from library and laboratories.',
-    status: 'In Progress',
-    isAnonymous: true,
-    createdAt: new Date(Date.now() - 22 * 3600 * 1000).toISOString(),
-    resolutionNote: 'Estate electrical team requisitioned replacement 150W LED driver; scheduled for installation today.',
-    assignedTo: 'Estate Electrical Maintenance',
-    attachments: [],
-  },
-  {
-    complaintId: 'VSP-MD4019-331B77',
-    category: 'Medical',
-    title: 'Health Centre Night Dispensary Emergency First-Aid Stock',
-    description: 'Basic antiseptic lotions and burn bandages were unavailable during late evening hours at campus dispensary.',
-    status: 'Resolved',
-    isAnonymous: false,
-    createdAt: new Date(Date.now() - 120 * 3600 * 1000).toISOString(),
-    resolutionNote: 'Chief Medical Officer verified pharmacy reserves and instituted 24x7 stock threshold alerts.',
-    assignedTo: 'Institute Health Centre',
-    attachments: [],
-  },
-  {
-    complaintId: 'VSP-AD6624-902183',
-    category: 'Administration',
-    title: 'Hostel Room Allotment Roster Discrepancy for PG Scholars',
-    description: 'Hostel portal displayed duplicate room allocations for incoming research scholars in Block E.',
-    status: 'Resolved',
-    isAnonymous: false,
-    createdAt: new Date(Date.now() - 130 * 3600 * 1000).toISOString(),
-    resolutionNote: 'Council of Wardens updated database keys and issued corrected allotment certificates.',
-    assignedTo: 'Office of Dean of Student Welfare',
-    attachments: [],
-  },
-];
-
+const SEED_PETITIONS = [];
 export default function PublicTransparency() {
   const [activeTab, setActiveTab] = useState('Overview');
   const [complaints, setComplaints] = useState([]);
@@ -172,7 +50,6 @@ export default function PublicTransparency() {
   const isOfficer = localStorage.getItem('nyaya_user_role') === 'officer' || localStorage.getItem('nyaya_user_role') === 'admin';
   const { pathname } = useLocation();
 const isOfficerRoute = pathname.startsWith('/officer');
-const ledgerPath = isOfficerRoute ? '/officer/ledger' : '/ledger';
 
 const officerName = localStorage.getItem('nyaya_user_name') || 'Authority Officer';
 const officerInitials =
@@ -409,10 +286,10 @@ const handleOfficerLogout = () => {
             </Link>
 
             <Link
-              to={isLoggedIn ? '/dashboard' : '/login'}
+              to={'/login'}
               className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition"
             >
-              <i className="fa-solid fa-user-graduate w-4"></i> {isLoggedIn ? 'Student Dashboard' : 'Student Login'}
+              <i className="fa-solid fa-user-graduate w-4"></i> { 'Student Login'}
             </Link>
 
             <Link
@@ -422,21 +299,14 @@ const handleOfficerLogout = () => {
               <i className="fa-solid fa-chart-pie w-4"></i> Public Transparency
             </Link>
 
-            <Link
-              to="/ledger"
-              className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-200/60 transition"
-            >
-              <i className="fa-solid fa-fingerprint w-4"></i> Audit Ledger
-            </Link>
-
-            <div className="pt-3 border-t border-stone-200/60 mt-3">
+            {/* <div className="pt-3 border-t border-stone-200/60 mt-3">
               <Link
                 to={isOfficer ? '/officerdash' : '/authority/login'}
                 className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-amber-900 bg-amber-100/50 hover:bg-amber-100 transition text-[11px]"
               >
                 <i className="fa-solid fa-user-shield w-4 text-amber-700"></i> Officer Console
               </Link>
-            </div>
+            </div> */}
           </nav>
         </div>
 
@@ -444,8 +314,7 @@ const handleOfficerLogout = () => {
           <div className="flex items-center gap-2 text-xs text-stone-600">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
             <div>
-              <p className="font-bold text-stone-800 text-[11px]">Open Transparency Portal</p>
-              <p className="text-[10px] text-stone-500">Public Institutional Ledger</p>
+              {/* <p className="font-bold text-stone-800 text-[11px]">Open Transparency Portal</p> */}
             </div>
           </div>
         </div>
@@ -465,7 +334,7 @@ const handleOfficerLogout = () => {
               </span>
             </div>
             <p className="text-xs text-stone-500">
-              Open records, real-time redressal metrics, and cryptographic ledger verification
+              Open records, real-time redressal metrics, and institutional accountability
             </p>
           </div>
 
@@ -473,12 +342,12 @@ const handleOfficerLogout = () => {
             <span className="hidden sm:inline-block text-xs text-stone-600 bg-stone-100 px-3.5 py-1.5 rounded-full border border-stone-200 font-medium">
               Academic Session 2026-27
             </span>
-            <Link
+            {/* <Link
               to="/file-complaint"
               className="px-4 py-2 bg-[#6B1724] hover:bg-[#54121C] text-white rounded-xl text-xs font-semibold shadow-xs transition flex items-center gap-1.5"
             >
               <i className="fa-solid fa-file-circle-plus text-[11px]"></i> File a Grievance
-            </Link>
+            </Link> */}
           </div>
         </header>
 
@@ -518,7 +387,7 @@ const handleOfficerLogout = () => {
                   </span>
                 </div>
               </div>
-              <p className="text-xs text-stone-500 mt-2">Every petition permanently recorded on tamper-evident ledger</p>
+              <p className="text-xs text-stone-500 mt-2">Every petition tracked from submission to resolution</p>
             </div>
 
             <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
@@ -877,11 +746,6 @@ const handleOfficerLogout = () => {
                   <span>
                     Displaying <strong>{filteredComplaints.length}</strong> of <strong>{complaints.length}</strong> total institutional petitions
                   </span>
-                  <div className="flex items-center gap-3">
-                    <Link to={ledgerPath} className="text-[#6B1724] font-semibold hover:underline flex items-center gap-1">
-                      <i className="fa-solid fa-fingerprint"></i> Inspect SHA-256 Ledger
-                    </Link>
-                  </div>
                 </div>
               </div>
             </div>
@@ -1138,24 +1002,6 @@ const handleOfficerLogout = () => {
                     <p className="text-xs text-stone-600 mt-1">94.6% Overall Adherence</p>
                   </div>
                 </div>
-
-                <div className="p-5 bg-[#FAF5EE] rounded-xl border border-[#E8C582] flex flex-col md:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#6B1724] text-[#E8C582] flex items-center justify-center text-lg shadow-xs">
-                      <i className="fa-solid fa-fingerprint"></i>
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-sm text-[#6B1724]">Cryptographic Ledger Verification</h4>
-                      <p className="text-xs text-stone-600">Every state transition is linked in a SHA-256 Merkle chain. Tamper-evident and verifiable.</p>
-                    </div>
-                  </div>
-                  <Link
-                    to={ledgerPath}
-                    className="px-4 py-2 bg-[#6B1724] hover:bg-[#54121C] text-white rounded-xl text-xs font-semibold shadow-xs transition shrink-0"
-                  >
-                    Open Audit Ledger
-                  </Link>
-                </div>
               </div>
             </div>
           )}
@@ -1270,25 +1116,6 @@ const handleOfficerLogout = () => {
                 )}
               </div>
             )}
-
-            {/* Cryptographic Tamper-Proof Signature */}
-            <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2 text-stone-600">
-                <i className="fa-solid fa-shield-halved text-emerald-600"></i>
-                <div>
-                  <p className="font-bold text-[11px] text-stone-800">Tamper-Proof Audit Hash</p>
-                  <p className="text-[10px] font-mono text-stone-400 truncate max-w-xs">
-                    SHA-256: {selectedPetition.complaintId.replace(/[^A-Za-z0-9]/g, '').padEnd(32, 'a').slice(0, 32)}...
-                  </p>
-                </div>
-              </div>
-              <Link
-                to={ledger}
-                className="text-xs font-semibold text-[#6B1724] hover:underline"
-              >
-                Verify on Ledger &rarr;
-              </Link>
-            </div>
 
             {/* Footer */}
             <div className="pt-2 flex items-center justify-between">

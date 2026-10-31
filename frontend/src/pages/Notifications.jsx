@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import AppSidebar from '../components/AppSidebar';
 import { notificationApi } from '../services/api';
 
@@ -7,17 +7,21 @@ const TYPE_STYLE = {
   status: 'bg-amber-100 text-amber-700',
   message: 'bg-rose-100 text-[#6B1724]',
   sla: 'bg-rose-100 text-rose-600',
-  ledger: 'bg-emerald-100 text-emerald-700',
 };
 
 const Notifications = () => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
 
-  const role = localStorage.getItem('nyaya_user_role') || 'user';
+  const role = pathname.startsWith('/officer')
+    ? 'officer'
+    : pathname.startsWith('/admin')
+    ? 'admin'
+    : 'user';
 
   const fetchNotifications = async () => {
     try {

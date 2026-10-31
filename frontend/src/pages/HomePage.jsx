@@ -20,12 +20,12 @@ function Home() {
         </div>
 
         {/* Center: links */}
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium justify-self-center">
+        {/* <div className="hidden md:flex items-center gap-8 text-sm font-medium justify-self-center">
           <a href="#home" className="text-[#7a1620]">Home</a>
           <a href="#about" className="hover:text-[#7a1620] transition">About</a>
           <a href="#features" className="hover:text-[#7a1620] transition">Features</a>
           <a href="#statistics" className="hover:text-[#7a1620] transition">Statistics</a>
-        </div>
+        </div> */}
 
         {/* Right: buttons */}
         <div className="flex items-center gap-2 sm:gap-3 justify-self-end col-start-3">

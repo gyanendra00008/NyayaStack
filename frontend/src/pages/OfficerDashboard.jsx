@@ -88,22 +88,8 @@ export default function OfficerDashboard() {
 
   const handleQuickStatusChange = async (complaintId, nextStatus) => {
     try {
-      // Find the complaint object to check if it's in a hash-chain
-      const targetComplaint = complaints.find((c) => c.complaintId === complaintId);
-      if (nextStatus === "Resolved" && targetComplaint?.chainId) {
-        const confirmAll = window.confirm(
-          `This complaint is part of a linked Hash Chain (Root: ${targetComplaint.chainRoot || targetComplaint.complaintId}).\n\nMarking it as Resolved will automatically resolve ALL linked complaints in this chain.\n\nDo you want to proceed?`
-        );
-        if (!confirmAll) return;
-      }
-
       setUpdatingId(complaintId);
-      const res = await complaintApi.updateComplaintStatus(complaintId, { status: nextStatus });
-      if (res.data?.data?.chainResolvedCount > 0) {
-        alert(
-          `Success: Marked as Resolved! ${res.data.data.chainResolvedCount} linked complaint(s) in this Hash Chain were also automatically resolved.`
-        );
-      }
+      await complaintApi.updateComplaintStatus(complaintId, { status: nextStatus });
       await loadData();
     } catch (err) {
       alert(
@@ -395,14 +381,7 @@ export default function OfficerDashboard() {
                     filteredComplaints.map((c) => (
                       <tr key={c.complaintId} className="hover:bg-stone-50 transition">
                         <td className="py-3 px-3 font-mono font-bold text-[#6B1724]">
-                          <div className="flex flex-col">
-                            <span>{c.complaintId}</span>
-                            {c.chainId && (
-                              <span className="inline-flex items-center gap-1 text-[9px] font-sans font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded w-fit mt-0.5" title={`Chained: Root is ${c.chainRoot || c.complaintId}`}>
-                                <i className="fa-solid fa-link text-[8px]"></i> Chained
-                              </span>
-                            )}
-                          </div>
+                          <span>{c.complaintId}</span>
                         </td>
                         <td className="py-3 px-3">
                           <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200 font-semibold text-[10px]">

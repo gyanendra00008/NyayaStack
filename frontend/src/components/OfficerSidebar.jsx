@@ -6,7 +6,7 @@ import logo from '../assets/logo.png';
 
 const OFFICER_LINKS = [
   { to: '/officerdash', icon: 'fa-gauge-high', label: 'Officer Console' },
-  { to: '/officer/petitions', icon: 'fa-list-check', label: 'Assigned Petitions' },
+  // { to: '/officer/petitions', icon: 'fa-list-check', label: 'Assigned Petitions' },
   { to: '/officer/notifications', icon: 'fa-bell', label: 'Notifications' },
 ];
 

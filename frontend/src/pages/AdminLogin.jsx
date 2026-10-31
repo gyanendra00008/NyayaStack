@@ -111,7 +111,7 @@ export default function AdminLogin() {
           </div>
           <h2 className="text-2xl font-bold text-[#3b2a20] font-serif">Admin Login</h2>
           <p className="text-xs text-[#3b2a20]/80 mt-1">
-            Access to authority approvals, ledger inspection, and oversight
+            Access to authority approvals and institutional oversight
           </p>
         </div>
 

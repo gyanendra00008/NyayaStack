@@ -301,13 +301,6 @@ async function run() {
     assert.equal(resStatus.status, 200);
     record("complaintApi.updateComplaintStatus", "PATCH", `/api/complaints/:complaintId/status`, true, "Status updated to In Progress");
 
-    // 21. Complaint Hash-Chain (complaintApi.getComplaintChain)
-    const resChain = await fetch(`${baseUrl}/complaints/${complaintId}/chain`, {
-      headers: { Authorization: `Bearer ${userToken}` },
-    });
-    assert.equal(resChain.status, 200);
-    record("complaintApi.getComplaintChain", "GET", `/api/complaints/:complaintId/chain`, true, "Retrieved hash chain");
-
     // 22. Public Feed (complaintApi.getPublicComplaints)
     const resPublic = await fetch(`${baseUrl}/complaints/public?limit=10`);
     assert.equal(resPublic.status, 200);
